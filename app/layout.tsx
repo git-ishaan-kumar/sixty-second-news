@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Montserrat } from "next/font/google";
+import { TikTok_Sans } from "next/font/google";
+import Sidebar from "../components/layout/Sidebar";
 import "./globals.css";
 
-const montserrat = Montserrat({
+const tiktokSans = TikTok_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-montserrat",
+  variable: "--font-tiktok-sans",
 });
 
 export const metadata: Metadata = {
@@ -21,12 +22,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${montserrat.variable} h-full antialiased`}
+      className={`${tiktokSans.variable} h-full antialiased`}
     >
-      <body className={`${montserrat.className} min-h-full flex flex-col bg-background text-foreground`}>
-        {children}
+      <body className={`${tiktokSans.className} min-h-full flex bg-background text-foreground`}>
+        <Sidebar />
+        <main className="flex-1 flex flex-col min-w-0">
+          {children}
+        </main>
       </body>
     </html>
   );
 }
+
+
 

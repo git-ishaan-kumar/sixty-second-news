@@ -21,14 +21,15 @@
   --color-primary: var(--hyper-blue);
   --color-accent: var(--hyper-blue);
   
-  --font-montserrat: var(--font-montserrat);
+  --font-tiktok-sans: var(--font-tiktok-sans);
 }
 
 body {
   background-color: var(--pitch-charcoal);
   color: var(--pure-white);
-  font-family: var(--font-montserrat), sans-serif;
+  font-family: var(--font-tiktok-sans), sans-serif;
   margin: 0;
   padding: 0;
 }
+
 
