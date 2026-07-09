@@ -46,3 +46,6 @@ __pycache__/
 *$py.class
 scripts/output_feed.json
 scripts/processed_urls.json
+
+# project directories
+project/
