@@ -68,10 +68,9 @@ export default function LoginPage() {
         setErrors({ global: result.error || 'Authentication failed. Please check your credentials.' });
       } else {
         setLoginSuccess(true);
-        // Refresh session context in sidebar/layout and redirect
-        router.refresh();
+        // Force a full browser reload using window.location to bypass Client Router Cache and sync the layout
         setTimeout(() => {
-          router.push(result.redirect || '/');
+          window.location.href = result.redirect || '/';
         }, 1500);
       }
     } catch (err) {

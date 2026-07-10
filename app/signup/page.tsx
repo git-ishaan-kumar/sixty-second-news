@@ -230,10 +230,9 @@ export default function SignUpPage() {
         }
       } else {
         setSignUpSuccess(true);
-        // Refresh router state and redirect
-        router.refresh();
+        // Force a full browser reload using window.location to bypass Client Router Cache and sync the layout
         setTimeout(() => {
-          router.push(result.redirect || '/');
+          window.location.href = result.redirect || '/';
         }, 1500);
       }
     } catch (err) {
