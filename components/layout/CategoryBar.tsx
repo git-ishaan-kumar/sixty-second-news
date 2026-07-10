@@ -178,8 +178,12 @@ interface Category {
   icon: React.ReactNode;
 }
 
-export default function CategoryBar() {
-  const [user, setUser] = useState<any>(null);
+interface CategoryBarProps {
+  initialUser?: any;
+}
+
+export default function CategoryBar({ initialUser = null }: CategoryBarProps) {
+  const [user, setUser] = useState<any>(initialUser);
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
