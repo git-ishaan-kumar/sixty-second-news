@@ -138,6 +138,23 @@ const LogoutIcon = () => (
   </svg>
 );
 
+const InstallIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="w-5 h-5 flex-shrink-0"
+  >
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" x2="12" y1="15" y2="3" />
+  </svg>
+);
+
 interface SidebarProps {
   initialUser?: any;
   initialProfile?: Profile | null;
@@ -150,6 +167,12 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
   const [loading, setLoading] = useState(!initialUser);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
+  
+  // Install App PWA States
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [isIos, setIsIos] = useState(false);
+  const [showIosTooltip, setShowIosTooltip] = useState(false);
   
   const supabase = createClient();
   const pathname = usePathname();
@@ -235,6 +258,65 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
     return () => clearInterval(timer);
   }, []);
 
+  // 3. PWA Install App Logic & Event Listeners
+  useEffect(() => {
+    // Hide button if already running in standalone display mode
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandalone) {
+      return;
+    }
+
+    // Safety checks: must be mobile touch device, explicitly exclude Chromebooks
+    const ua = navigator.userAgent;
+    const isChromebook = ua.includes('CrOS');
+    const isTouchDevice = 
+      ('ontouchstart' in window) || 
+      (navigator.maxTouchPoints > 0) || 
+      window.matchMedia('(pointer: coarse)').matches;
+
+    if (!isTouchDevice || isChromebook) {
+      return;
+    }
+
+    // Detect if iOS (iPhone/iPad/iPod)
+    const isIosDevice = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+    setIsIos(isIosDevice);
+
+    if (isIosDevice) {
+      // iOS doesn't trigger beforeinstallprompt, show the install option immediately
+      setShowInstallBtn(true);
+    } else {
+      // Android / Chrome-based touch devices
+      const handleBeforeInstallPrompt = (e: Event) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+        setShowInstallBtn(true);
+      };
+
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+      return () => {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      };
+    }
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (isIos) {
+      setShowIosTooltip((prev) => !prev);
+      return;
+    }
+
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to install prompt: ${outcome}`);
+
+    setDeferredPrompt(null);
+    setShowInstallBtn(false);
+  };
+
   const handleNav = (path: string) => {
     router.push(path);
   };
@@ -261,185 +343,215 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
   const isProfileActive = pathname === '/profile';
 
   return (
-    <aside className="w-16 md:w-64 h-screen bg-pitch-charcoal border-r border-muted-slate/10 text-pure-white flex flex-col p-3 md:p-4 transition-all duration-300 z-50 flex-shrink-0 sticky top-0 font-montserrat">
-      {/* Brand Header */}
-      <div className="flex flex-col md:flex-row items-center gap-2 px-1 py-2 mb-6 select-none">
-        <div className="w-8 h-8 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white font-extrabold text-sm flex-shrink-0 shadow-md shadow-hyper-blue/20">
-          ⚡
-        </div>
-        <span className="text-[10px] md:text-base font-bold tracking-tight text-pure-white text-center md:text-left leading-tight md:leading-normal">
-          Sixty Second News
-        </span>
-      </div>
-
-      {/* Primary Navigation Section */}
-      <nav className="flex flex-col gap-2 w-full">
-        {/* Search Bar / Search Button */}
-        <div className="w-full mb-1">
-          {/* Desktop Search Input */}
-          <div className="hidden md:block relative w-full px-1">
-            <input
-              type="text"
-              placeholder="Search news..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#1e1e24] text-pure-white placeholder-muted-slate text-xs px-3 py-2 rounded-lg border border-muted-slate/20 focus:outline-none focus:border-hyper-blue focus:ring-1 focus:ring-hyper-blue transition-all"
-            />
+    <aside className="w-16 md:w-64 h-screen flex flex-col justify-between p-3 pb-6 bg-pitch-charcoal border-r border-muted-slate/10 text-pure-white transition-all duration-300 z-50 flex-shrink-0 sticky top-0 font-montserrat">
+      
+      {/* Top Group: Brand Header and Navigation Links */}
+      <div className="flex flex-col gap-2 w-full">
+        {/* Brand Header */}
+        <div className="flex flex-col md:flex-row items-center gap-2 px-1 py-2 mb-6 select-none">
+          <div className="w-8 h-8 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white font-extrabold text-sm flex-shrink-0 shadow-md shadow-hyper-blue/20">
+            ⚡
           </div>
-          {/* Mobile Search Icon Button */}
-          <button
-            onClick={() => {}}
-            className="block md:hidden w-full flex items-center justify-center p-2.5 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all"
-            title="Search"
-          >
-            <SearchIcon />
-          </button>
+          <span className="hidden md:inline text-base font-bold tracking-tight text-pure-white leading-normal">
+            Sixty Second News
+          </span>
         </div>
 
-        {/* Home/Feed Link */}
-        <button
-          onClick={() => handleNav('/')}
-          className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-            isHomeActive
-              ? 'text-hyper-blue bg-hyper-blue/10'
-              : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
-          }`}
-        >
-          <HomeIcon active={isHomeActive} />
-          <span className="hidden md:inline">
-            {user ? 'For You' : 'Home'}
-          </span>
-        </button>
+        {/* Primary Navigation Section */}
+        <nav className="flex flex-col gap-2 w-full">
+          {/* Search Bar / Search Button */}
+          <div className="w-full mb-1">
+            {/* Desktop Search Input */}
+            <div className="hidden md:block relative w-full px-1">
+              <input
+                type="text"
+                placeholder="Search news..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-[#1e1e24] text-pure-white placeholder-muted-slate text-xs px-3 py-2 rounded-lg border border-muted-slate/20 focus:outline-none focus:border-hyper-blue focus:ring-1 focus:ring-hyper-blue transition-all"
+              />
+            </div>
+            {/* Mobile Search Icon Button */}
+            <button
+              onClick={() => {}}
+              className="block md:hidden w-full flex items-center justify-center p-2.5 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all"
+              title="Search"
+            >
+              <SearchIcon />
+            </button>
+          </div>
 
-        {/* Trending Link (Logged in users only) */}
-        {user && (
+          {/* Home/Feed Link */}
           <button
-            onClick={() => handleNav('/?category=trending')}
+            onClick={() => handleNav('/')}
             className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              isTrendingActive
+              isHomeActive
                 ? 'text-hyper-blue bg-hyper-blue/10'
                 : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
             }`}
           >
-            <TrendingIcon active={isTrendingActive} />
-            <span className="hidden md:inline">Trending</span>
+            <HomeIcon active={isHomeActive} />
+            <span className="hidden md:inline">
+              {user ? 'For You' : 'Home'}
+            </span>
           </button>
-        )}
 
-        {/* Profile Link */}
-        <button
-          onClick={() => {
-            if (user) {
-              setIsProfileOpen(!isProfileOpen);
-            } else {
-              handleNav('/login');
-            }
-          }}
-          className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-            isProfileActive
-              ? 'text-hyper-blue bg-hyper-blue/10'
-              : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
-          }`}
-        >
-          {user && profile?.username ? (
-            <div className={`w-5 h-5 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white text-[10px] font-bold flex-shrink-0 uppercase border ${isProfileActive ? 'border-pure-white' : 'border-transparent'}`}>
-              {profile.username.charAt(0)}
-            </div>
-          ) : user ? (
-            <div className={`w-5 h-5 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white text-[10px] font-bold flex-shrink-0 uppercase border ${isProfileActive ? 'border-pure-white' : 'border-transparent'}`}>
-              {user.email?.charAt(0) || 'U'}
-            </div>
-          ) : (
-            <ProfileIcon />
+          {/* Trending Link (Logged in users only) */}
+          {user && (
+            <button
+              onClick={() => handleNav('/?category=trending')}
+              className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                isTrendingActive
+                  ? 'text-hyper-blue bg-hyper-blue/10'
+                  : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
+              }`}
+            >
+              <TrendingIcon active={isTrendingActive} />
+              <span className="hidden md:inline">Trending</span>
+            </button>
           )}
-          <span className="hidden md:inline">Profile</span>
-        </button>
 
-        {/* Profile Dropdown Options */}
-        {user && isProfileOpen && (
-          <div className="flex flex-col gap-1 w-full pl-0 md:pl-4 transition-all duration-200">
-            {/* Settings Option */}
+          {/* Profile Link */}
+          <button
+            onClick={() => {
+              if (user) {
+                setIsProfileOpen(!isProfileOpen);
+              } else {
+                handleNav('/login');
+              }
+            }}
+            className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+              isProfileActive
+                ? 'text-hyper-blue bg-hyper-blue/10'
+                : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
+            }`}
+          >
+            {user && profile?.username ? (
+              <div className={`w-5 h-5 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white text-[10px] font-bold flex-shrink-0 uppercase border ${isProfileActive ? 'border-pure-white' : 'border-transparent'}`}>
+                {profile.username.charAt(0)}
+              </div>
+            ) : user ? (
+              <div className={`w-5 h-5 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white text-[10px] font-bold flex-shrink-0 uppercase border ${isProfileActive ? 'border-pure-white' : 'border-transparent'}`}>
+                {user.email?.charAt(0) || 'U'}
+              </div>
+            ) : (
+              <ProfileIcon />
+            )}
+            <span className="hidden md:inline">Profile</span>
+          </button>
+
+          {/* Profile Dropdown Options */}
+          {user && isProfileOpen && (
+            <div className="flex flex-col gap-1 w-full pl-0 md:pl-4 transition-all duration-200">
+              {/* Settings Option */}
+              <button
+                onClick={() => {
+                  handleNav('/profile');
+                  setIsProfileOpen(false);
+                }}
+                className="w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all text-xs font-semibold"
+                title="Settings"
+              >
+                <SettingsIcon />
+                <span className="hidden md:inline">Settings</span>
+              </button>
+              {/* Log Out Option */}
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-xs font-semibold cursor-pointer"
+                title="Log Out"
+              >
+                <LogoutIcon />
+                <span className="hidden md:inline">Log Out</span>
+              </button>
+            </div>
+          )}
+
+          {/* Authentication Section (Non-Logged-In Users Only) */}
+          {!loading && !user && (
+            <div className="flex flex-col gap-2 w-full mt-4 border-t border-muted-slate/10 pt-4">
+              {/* Desktop CTAs */}
+              <div className="hidden md:flex flex-col gap-2 w-full">
+                <button
+                  onClick={() => handleNav('/login')}
+                  className="w-full text-center py-2 border border-hyper-blue text-hyper-blue hover:bg-hyper-blue/50 hover:text-pure-white rounded-lg font-semibold transition-all text-xs"
+                >
+                  Log in
+                </button>
+                <button
+                  onClick={() => handleNav('/signup')}
+                  className="w-full text-center py-2 bg-hyper-blue text-pure-white hover:bg-hyper-blue/90 rounded-lg font-semibold transition-all text-xs"
+                >
+                  Register
+                </button>
+              </div>
+
+              {/* Mobile Collapsed Authentication Icons */}
+              <div className="flex md:hidden flex-col gap-2 items-center w-full">
+                <button
+                  onClick={() => handleNav('/login')}
+                  className="w-10 h-10 flex items-center justify-center border border-muted-slate/20 text-muted-slate hover:text-pure-white hover:border-pure-white rounded-lg transition-all"
+                  title="Log in"
+                >
+                  <LoginIcon />
+                </button>
+                <button
+                  onClick={() => handleNav('/signup')}
+                  className="w-10 h-10 flex items-center justify-center bg-hyper-blue/10 border border-hyper-blue/30 text-hyper-blue hover:bg-hyper-blue hover:text-pure-white rounded-lg transition-all"
+                  title="Register"
+                >
+                  <RegisterIcon />
+                </button>
+              </div>
+            </div>
+          )}
+        </nav>
+      </div>
+
+      {/* Bottom Group: Install App Button and Footer Info */}
+      <div className="flex flex-col gap-3 w-full">
+        {/* Client-side 'Install App' trigger button */}
+        {showInstallBtn && (
+          <div className="relative w-full border-t border-muted-slate/10 pt-2 flex flex-col items-center">
             <button
-              onClick={() => {
-                handleNav('/profile');
-                setIsProfileOpen(false);
-              }}
-              className="w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all text-xs font-semibold"
-              title="Settings"
+              onClick={handleInstallClick}
+              className="w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all text-sm font-medium cursor-pointer text-left"
+              title="Install App"
             >
-              <SettingsIcon />
-              <span className="hidden md:inline">Settings</span>
+              <InstallIcon />
+              <span className="hidden md:inline">Install App</span>
             </button>
-            {/* Log Out Option */}
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-xs font-semibold cursor-pointer"
-              title="Log Out"
-            >
-              <LogoutIcon />
-              <span className="hidden md:inline">Log Out</span>
-            </button>
+            
+            {showIosTooltip && (
+              <div className="absolute bottom-14 left-1/2 -translate-x-1/2 md:left-full md:translate-x-4 md:bottom-0 w-48 bg-[#16161A] border border-hyper-blue p-3 rounded-xl shadow-2xl z-50 text-left animate-fadeIn">
+                <p className="text-[10px] font-semibold text-pure-white leading-relaxed">
+                  To install: tap the browser's <span className="text-hyper-blue font-bold">Share</span> icon then select <span className="text-hyper-blue font-bold">Add to Home Screen</span>.
+                </p>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-x-4 border-x-transparent border-t-4 border-t-hyper-blue md:top-4 md:translate-y-0 md:right-full md:left-auto md:border-y-4 md:border-y-transparent md:border-r-4 md:border-r-hyper-blue md:border-t-0" />
+              </div>
+            )}
           </div>
         )}
 
-        {/* Authentication Section (Non-Logged-In Users Only) */}
-        {!loading && !user && (
-          <div className="flex flex-col gap-2 w-full mt-4 border-t border-muted-slate/10 pt-4">
-            {/* Desktop CTAs */}
-            <div className="hidden md:flex flex-col gap-2 w-full">
-              <button
-                onClick={() => handleNav('/login')}
-                className="w-full text-center py-2 border border-hyper-blue text-hyper-blue hover:bg-hyper-blue/50 hover:text-pure-white rounded-lg font-semibold transition-all text-xs"
-              >
-                Log in
-              </button>
-              <button
-                onClick={() => handleNav('/signup')}
-                className="w-full text-center py-2 bg-hyper-blue text-pure-white hover:bg-hyper-blue/90 rounded-lg font-semibold transition-all text-xs"
-              >
-                Register
-              </button>
-            </div>
-
-            {/* Mobile Collapsed Authentication Icons */}
-            <div className="flex md:hidden flex-col gap-2 items-center w-full">
-              <button
-                onClick={() => handleNav('/login')}
-                className="w-10 h-10 flex items-center justify-center border border-muted-slate/20 text-muted-slate hover:text-pure-white hover:border-pure-white rounded-lg transition-all"
-                title="Log in"
-              >
-                <LoginIcon />
-              </button>
-              <button
-                onClick={() => handleNav('/signup')}
-                className="w-10 h-10 flex items-center justify-center bg-hyper-blue/10 border border-hyper-blue/30 text-hyper-blue hover:bg-hyper-blue hover:text-pure-white rounded-lg transition-all"
-                title="Register"
-              >
-                <RegisterIcon />
-              </button>
-            </div>
+        {/* Footer (Countdown & Logged in Indicator) */}
+        <div className="border-t border-muted-slate/10 pt-3 flex flex-col gap-3 select-none">
+          {/* Countdown Widget */}
+          <div className="flex flex-col items-center md:items-start gap-0.5">
+            <span className="hidden md:block text-[9px] uppercase tracking-wider text-muted-slate font-bold">
+              Next Refresh
+            </span>
+            <span className="text-xs md:text-sm font-extrabold font-mono text-hyper-blue bg-hyper-blue/5 border border-hyper-blue/10 px-2 py-1 rounded-md">
+              {timeLeft || '00:00'}
+            </span>
           </div>
-        )}
-      </nav>
-
-      {/* Footer (Countdown & Logged in Indicator) */}
-      <div className="mt-auto border-t border-muted-slate/10 pt-4 flex flex-col gap-3 select-none">
-        {/* Countdown Widget */}
-        <div className="flex flex-col items-center md:items-start gap-0.5">
-          <span className="hidden md:block text-[9px] uppercase tracking-wider text-muted-slate font-bold">
-            Next Refresh
-          </span>
-          <span className="text-xs md:text-sm font-extrabold font-mono text-hyper-blue bg-hyper-blue/5 border border-hyper-blue/10 px-2 py-1 rounded-md">
-            {timeLeft || '00:00'}
-          </span>
+          
+          {/* Logged in Indicator */}
+          {user && (
+            <div className="hidden md:block text-[10px] text-muted-slate border-t border-muted-slate/5 pt-2">
+              Signed in as <span className="text-pure-white block truncate">@{profile?.username || user.email?.split('@')[0]}</span>
+            </div>
+          )}
         </div>
-        
-        {/* Logged in Indicator */}
-        {user && (
-          <div className="hidden md:block text-[10px] text-muted-slate border-t border-muted-slate/5 pt-2">
-            Signed in as <span className="text-pure-white block truncate">@{profile?.username || user.email?.split('@')[0]}</span>
-          </div>
-        )}
       </div>
     </aside>
   );
