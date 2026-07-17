@@ -256,8 +256,8 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
   const defaultCategory = user ? 'for_you' : 'all';
   const currentCategory = searchParams.get('category') || defaultCategory;
 
-  const isHomeActive = pathname === '/' && currentCategory !== 'trending';
-  const isTrendingActive = pathname === '/' && currentCategory === 'trending';
+  const isHomeActive = pathname === '/' && (user ? currentCategory === 'for_you' : currentCategory !== 'trending');
+  const isTrendingActive = pathname === '/' && (user ? currentCategory !== 'for_you' : currentCategory === 'trending');
   const isProfileActive = pathname === '/profile';
 
   return (

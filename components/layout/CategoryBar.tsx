@@ -22,6 +22,22 @@ const SparklesIcon = () => (
   </svg>
 );
 
+const TrendingIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="w-4 h-4"
+  >
+    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+    <polyline points="16 7 22 7 22 13" />
+  </svg>
+);
+
 const GlobeIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -227,7 +243,10 @@ export default function CategoryBar({ initialUser = null }: CategoryBarProps) {
   const categories: Category[] = [
     // Conditionally render For You / All
     ...(user
-      ? [{ id: 'for_you', label: 'For You', icon: <SparklesIcon /> }]
+      ? [
+          { id: 'for_you', label: 'For You', icon: <SparklesIcon /> },
+          { id: 'trending', label: 'Trending', icon: <TrendingIcon /> }
+        ]
       : [{ id: 'all', label: 'All', icon: <GlobeIcon /> }]),
     { id: 'politics_government', label: 'Politics', icon: <PoliticsIcon /> },
     { id: 'economy_business_finance', label: 'Business', icon: <BusinessIcon /> },

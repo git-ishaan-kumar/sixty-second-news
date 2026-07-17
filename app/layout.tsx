@@ -17,7 +17,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Sixty Second News | Fast, Visual Breaking News Hooks",
+  title: "Sixty Second News",
   description: "Aggregating global breaking news, rewritten into engaging 60-second hooks with flippable cards.",
 };
 
