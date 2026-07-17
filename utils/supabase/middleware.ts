@@ -40,8 +40,8 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Route protection rule 1: Protect '/profile' and redirect unauthenticated users to '/login'
-  if (!user && pathname.startsWith('/profile')) {
+  // Route protection rule 1: Protect '/profile' and '/update-password' routes and redirect unauthenticated users to '/login'
+  if (!user && (pathname.startsWith('/profile') || pathname.startsWith('/update-password'))) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     // Append the original page path as a redirect query param so they can be sent back after logging in

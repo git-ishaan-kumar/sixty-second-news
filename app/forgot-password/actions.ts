@@ -31,7 +31,7 @@ export async function resetPasswordAction(
     const supabase = await createClient();
     
     // 2. Trigger Supabase Password Reset with PKCE Redirect
-    const redirectTo = `${origin}/auth/callback?next=/profile`;
+    const redirectTo = `${origin}/auth/callback?next=/update-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
       redirectTo,
     });
