@@ -81,27 +81,8 @@ export async function signUpAction(formData: FormData): Promise<ActionResponse> 
   }
 
   // 6. Turnstile Verification
-  if (process.env.TURNSTILE_SECRET_KEY) {
-    try {
-      const verifyUrl = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-      const verifyRes = await fetch(verifyUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          secret: process.env.TURNSTILE_SECRET_KEY,
-          response: turnstileToken,
-        }),
-      });
-
-      const verifyData = await verifyRes.json();
-      if (!verifyData.success) {
-        return { success: false, error: 'Security verification failed. Please try again.' };
-      }
-    } catch (e) {
-      console.error('Turnstile verification error:', e);
-      return { success: false, error: 'Security service unavailable. Please try again later.' };
-    }
-  }
+  // We pass the verification token directly to options.captchaToken inside supabase.auth.signUp()
+  // to let Supabase natively verify it, preventing double-verification (as tokens are single-use).
 
   // 7. Username Uniqueness Check (using admin client to bypass RLS restrictions)
   try {

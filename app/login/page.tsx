@@ -81,7 +81,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-center items-center px-4 py-12 bg-background font-montserrat min-h-screen">
+    <div className="flex-1 flex flex-col justify-center items-center px-4 py-12 bg-background min-h-screen">
       <div className="w-full max-w-md bg-[#16161A]/85 backdrop-blur-md rounded-2xl border border-muted-slate/15 p-8 shadow-2xl transition-all duration-300">
         
         {/* Header */}
