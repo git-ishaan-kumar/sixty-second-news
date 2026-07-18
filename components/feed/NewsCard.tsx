@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Article } from '@/types/supabase';
+import { mutateArticleReaction } from '@/app/actions';
 
 interface NewsCardProps {
   article: Article;
@@ -112,9 +113,17 @@ export default function NewsCard({ article }: NewsCardProps) {
 
   const formattedTime = getRelativeTime(published_at);
 
-  const handleLike = (e: React.MouseEvent) => {
+  const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // 1. Snapshot previous state for rollback on error
+    const prevHasLiked = hasLiked;
+    const prevHasDisliked = hasDisliked;
+    const prevLikeCount = likeCount;
+    const prevDislikeCount = dislikeCount;
+
+    // 2. Perform optimistic updates instantly
     if (hasLiked) {
       setHasLiked(false);
       setLikeCount((prev) => Math.max(0, prev - 1));
@@ -126,11 +135,49 @@ export default function NewsCard({ article }: NewsCardProps) {
         setDislikeCount((prev) => Math.max(0, prev - 1));
       }
     }
+
+    try {
+      // 3. Dispatch mutations to the backend server action
+      if (prevHasLiked) {
+        // Was liked, now unliking
+        const result = await mutateArticleReaction(article.id, 'unlike');
+        if (result?.success) {
+          setLikeCount(result.likes);
+          setDislikeCount(result.dislikes);
+        }
+      } else {
+        // Was not liked, now liking
+        if (prevHasDisliked) {
+          // If it was disliked, undislike first to correct counts/personalization scores
+          await mutateArticleReaction(article.id, 'undislike');
+        }
+        const result = await mutateArticleReaction(article.id, 'like');
+        if (result?.success) {
+          setLikeCount(result.likes);
+          setDislikeCount(result.dislikes);
+        }
+      }
+    } catch (err) {
+      console.error('Optimistic UI rollback - Like action failed:', err);
+      // 4. Rollback to previous state on failure
+      setHasLiked(prevHasLiked);
+      setHasDisliked(prevHasDisliked);
+      setLikeCount(prevLikeCount);
+      setDislikeCount(prevDislikeCount);
+    }
   };
 
-  const handleDislike = (e: React.MouseEvent) => {
+  const handleDislike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // 1. Snapshot previous state for rollback on error
+    const prevHasLiked = hasLiked;
+    const prevHasDisliked = hasDisliked;
+    const prevLikeCount = likeCount;
+    const prevDislikeCount = dislikeCount;
+
+    // 2. Perform optimistic updates instantly
     if (hasDisliked) {
       setHasDisliked(false);
       setDislikeCount((prev) => Math.max(0, prev - 1));
@@ -141,6 +188,36 @@ export default function NewsCard({ article }: NewsCardProps) {
         setHasLiked(false);
         setLikeCount((prev) => Math.max(0, prev - 1));
       }
+    }
+
+    try {
+      // 3. Dispatch mutations to the backend server action
+      if (prevHasDisliked) {
+        // Was disliked, now undisliking
+        const result = await mutateArticleReaction(article.id, 'undislike');
+        if (result?.success) {
+          setLikeCount(result.likes);
+          setDislikeCount(result.dislikes);
+        }
+      } else {
+        // Was not disliked, now disliking
+        if (prevHasLiked) {
+          // If it was liked, unlike first to correct counts/personalization scores
+          await mutateArticleReaction(article.id, 'unlike');
+        }
+        const result = await mutateArticleReaction(article.id, 'dislike');
+        if (result?.success) {
+          setLikeCount(result.likes);
+          setDislikeCount(result.dislikes);
+        }
+      }
+    } catch (err) {
+      console.error('Optimistic UI rollback - Dislike action failed:', err);
+      // 4. Rollback to previous state on failure
+      setHasLiked(prevHasLiked);
+      setHasDisliked(prevHasDisliked);
+      setLikeCount(prevLikeCount);
+      setDislikeCount(prevDislikeCount);
     }
   };
 

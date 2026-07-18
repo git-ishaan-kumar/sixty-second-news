@@ -150,3 +150,115 @@ export async function getPersonalizedFeed(userId: string): Promise<Article[]> {
   // Combine preferred and fallback articles (fallback is appended to ensure curated pool runs dry fallback)
   return [...sortedPreferred, ...fallbackArticles];
 }
+
+/**
+ * Mutates an article's reaction metrics (likes/dislikes) and updates
+ * the user's category personalization ratings in their profile.
+ *
+ * @param articleId The ID of the article being liked/disliked
+ * @param action The action type ('like' | 'unlike' | 'dislike' | 'undislike')
+ */
+export async function mutateArticleReaction(
+  articleId: string,
+  action: 'like' | 'unlike' | 'dislike' | 'undislike'
+): Promise<{ success: boolean; likes: number; dislikes: number }> {
+  const supabase = await createClient();
+
+  // 1. Fetch current user session
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+
+  // 2. Fetch the article's current likes/dislikes and category
+  const { data: article, error: articleError } = await supabase
+    .from('articles')
+    .select('category, likes, dislikes')
+    .eq('id', articleId)
+    .single();
+
+  if (articleError || !article) {
+    console.error('Error fetching article for mutation:', articleError);
+    throw new Error('Article not found.');
+  }
+
+  // Calculate delta adjustments based on the action
+  let deltaLikes = 0;
+  let deltaDislikes = 0;
+  let ratingDelta = 0;
+
+  switch (action) {
+    case 'like':
+      deltaLikes = 1;
+      ratingDelta = 1;
+      break;
+    case 'unlike':
+      deltaLikes = -1;
+      ratingDelta = -1;
+      break;
+    case 'dislike':
+      deltaDislikes = 1;
+      ratingDelta = -1;
+      break;
+    case 'undislike':
+      deltaDislikes = -1;
+      ratingDelta = 1;
+      break;
+  }
+
+  // Determine updated values
+  const updatedLikes = Math.max(0, article.likes + deltaLikes);
+  const updatedDislikes = Math.max(0, article.dislikes + deltaDislikes);
+
+  // 3. Perform global article metrics mutation in Supabase
+  const { error: updateError } = await supabase
+    .from('articles')
+    .update({
+      likes: updatedLikes,
+      dislikes: updatedDislikes,
+    })
+    .eq('id', articleId);
+
+  if (updateError) {
+    console.error('Error updating article metrics:', updateError);
+    throw new Error('Failed to update global metrics.');
+  }
+
+  // 4. Perform user-bound profiles ratings mutation if authenticated
+  if (userId) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('category_ratings')
+      .eq('id', userId)
+      .single();
+
+    if (!profileError && profile) {
+      const ratings: CategoryRatings = profile.category_ratings || {
+        politics_government: 0,
+        economy_business_finance: 0,
+        science_technology: 0,
+        sport: 0,
+        arts_culture_entertainment: 0,
+        crime_law_justice: 0,
+        environment: 0,
+      };
+
+      const currentRating = ratings[article.category] || 0;
+      ratings[article.category] = currentRating + ratingDelta;
+
+      const { error: profileUpdateError } = await supabase
+        .from('profiles')
+        .update({ category_ratings: ratings })
+        .eq('id', userId);
+
+      if (profileUpdateError) {
+        console.error('Error updating profile category ratings:', profileUpdateError);
+      }
+    }
+  }
+
+  return {
+    success: true,
+    likes: updatedLikes,
+    dislikes: updatedDislikes,
+  };
+}
+
