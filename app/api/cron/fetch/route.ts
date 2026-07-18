@@ -174,11 +174,10 @@ export async function GET(request: Request) {
     const existingUrlsSet = new Set(existingArticles?.map((a) => a.source_url) || []);
     const globalFilteredPool: CurrentsArticle[] = [];
 
-    // 3. Query Currents API for each category
+    // 3. Query Currents API for each category concurrently using Promise.all
     const categories = Object.keys(CATEGORY_WHITELISTS) as NewsCategory[];
     
-    // Fetch in parallel using Promise.allSettled to handle partial failures gracefully
-    await Promise.allSettled(
+    await Promise.all(
       categories.map(async (category) => {
         const whitelist = CATEGORY_WHITELISTS[category];
         const currentsUrl = `https://api.currentsapi.services/v2/latest-news?language=en&category=${category}&apiKey=${CURRENTS_API_KEY}`;
@@ -193,7 +192,13 @@ export async function GET(request: Request) {
           const data = await res.json();
           const newsItems: CurrentsArticle[] = data.news || [];
           
+          let categoryIngestedCount = 0;
           for (const item of newsItems) {
+            // Trim to a lean pool: max 5 articles per category to reduce Gemini token payload weight and speed up generation
+            if (categoryIngestedCount >= 5) {
+              break;
+            }
+
             if (!item.url || existingUrlsSet.has(item.url)) {
               continue;
             }
@@ -205,6 +210,7 @@ export async function GET(request: Request) {
               const isWhitelisted = UNIVERSAL_POOL.includes(domain) || whitelist.includes(domain);
               if (isWhitelisted && item.description && item.title) {
                 globalFilteredPool.push(item);
+                categoryIngestedCount++;
               }
             } catch (urlErr) {
               // Ignore invalid URLs
