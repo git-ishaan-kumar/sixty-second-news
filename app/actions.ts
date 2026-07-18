@@ -88,7 +88,7 @@ export async function getPersonalizedFeed(userId: string): Promise<Article[]> {
     .eq('id', userId)
     .single();
 
-  if (profileError) {
+  if (profileError && profileError.code !== 'PGRST116') {
     console.error('Error fetching user profile for personalization:', profileError);
     // Continue with default ratings if profile fetch fails
   }
@@ -103,7 +103,21 @@ export async function getPersonalizedFeed(userId: string): Promise<Article[]> {
     environment: 0,
   };
 
-  // 3. Fetch recent articles (filtering out seen ones if any exist)
+  // 3. Check for new user fallback (all ratings are 0 or empty)
+  const hasNoEngagement = Object.values(ratings).every((score) => score === 0);
+  if (hasNoEngagement) {
+    const feed = await getFeed('all');
+    // Filter out already seen articles to maintain a fresh feed
+    if (seenIds.length > 0) {
+      const filtered = feed.filter((article) => !seenIds.includes(article.id));
+      if (filtered.length > 0) {
+        return filtered;
+      }
+    }
+    return feed;
+  }
+
+  // 4. Fetch recent articles (filtering out seen ones if any exist)
   let query = supabase.from('articles').select('*');
 
   if (seenIds.length > 0) {
@@ -118,7 +132,7 @@ export async function getPersonalizedFeed(userId: string): Promise<Article[]> {
   }
 
   if (!articles || articles.length === 0) {
-    return [];
+    return getFeed('all');
   }
 
   // 3. Group preferred articles (rating > 0) and fallback articles (rating <= 0)
