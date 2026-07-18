@@ -349,9 +349,11 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
       <div className="flex flex-col gap-2 w-full">
         {/* Brand Header */}
         <div className="flex flex-col md:flex-row items-center gap-2 px-1 py-2 mb-6 select-none">
-          <div className="w-8 h-8 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white font-extrabold text-sm flex-shrink-0 shadow-md shadow-hyper-blue/20">
-            ⚡
-          </div>
+          <img
+            src="/icon.svg"
+            alt="Sixty Second News Logo"
+            className="w-8 h-8 rounded-full flex-shrink-0 shadow-md shadow-hyper-blue/20"
+          />
           <span className="hidden md:inline text-base font-bold tracking-tight text-pure-white leading-normal">
             Sixty Second News
           </span>
