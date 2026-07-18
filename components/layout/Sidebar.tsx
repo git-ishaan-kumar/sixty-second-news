@@ -343,7 +343,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
   const isProfileActive = pathname === '/profile';
 
   return (
-    <aside className="w-16 md:w-64 h-screen flex flex-col justify-between p-3 pb-6 bg-pitch-charcoal border-r border-muted-slate/10 text-pure-white transition-all duration-300 z-50 flex-shrink-0 sticky top-0 font-montserrat">
+    <aside className="w-16 md:w-64 h-screen flex flex-col justify-between p-3 pb-8 md:pb-6 bg-pitch-charcoal border-r border-muted-slate/10 text-pure-white transition-all duration-300 z-50 flex-shrink-0 sticky top-0 font-montserrat">
       
       {/* Top Group: Brand Header and Navigation Links */}
       <div className="flex flex-col gap-2 w-full">
@@ -523,11 +523,12 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
             </button>
             
             {showIosTooltip && (
-              <div className="absolute bottom-14 left-1/2 -translate-x-1/2 md:left-full md:translate-x-4 md:bottom-0 w-48 bg-[#16161A] border border-hyper-blue p-3 rounded-xl shadow-2xl z-50 text-left animate-fadeIn">
-                <p className="text-[10px] font-semibold text-pure-white leading-relaxed">
+              <div className="fixed bottom-24 left-4 z-[9999] w-[calc(100vw-32px)] max-w-[280px] bg-[#16161A] border border-hyper-blue p-3.5 rounded-xl shadow-2xl text-left animate-fadeIn">
+                <p className="text-xs font-semibold text-pure-white leading-relaxed">
                   To install: tap the browser's <span className="text-hyper-blue font-bold">Share</span> icon then select <span className="text-hyper-blue font-bold">Add to Home Screen</span>.
                 </p>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-x-4 border-x-transparent border-t-4 border-t-hyper-blue md:top-4 md:translate-y-0 md:right-full md:left-auto md:border-y-4 md:border-y-transparent md:border-r-4 md:border-r-hyper-blue md:border-t-0" />
+                {/* Arrow caret pointing down towards browser navigation bar */}
+                <div className="absolute top-full left-8 -translate-x-1/2 border-x-6 border-x-transparent border-t-6 border-t-hyper-blue" />
               </div>
             )}
           </div>
