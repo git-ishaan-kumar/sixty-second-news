@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Article } from '@/types/supabase';
 import { mutateArticleReaction } from '@/app/actions';
+import { createClient } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
 
 interface NewsCardProps {
   article: Article;
@@ -68,6 +70,23 @@ export default function NewsCard({ article }: NewsCardProps) {
   // Format subcategory replacing underscores with spaces
   const formattedSubcategory = subcategory ? subcategory.replace(/_/g, ' ') : '';
 
+  // Client-side authentication state
+  const [userId, setUserId] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUserId(session?.user?.id ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Local state for optimistic UI updates
   const [hasLiked, setHasLiked] = useState(false);
   const [hasDisliked, setHasDisliked] = useState(false);
@@ -118,6 +137,12 @@ export default function NewsCard({ article }: NewsCardProps) {
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!userId) {
+      console.warn('Anonymous users cannot react to articles. Please log in.');
+      router.push('/login');
+      return;
+    }
 
     // 1. Snapshot previous state for rollback on error
     const prevHasLiked = hasLiked;
@@ -172,6 +197,12 @@ export default function NewsCard({ article }: NewsCardProps) {
   const handleDislike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!userId) {
+      console.warn('Anonymous users cannot react to articles. Please log in.');
+      router.push('/login');
+      return;
+    }
 
     // 1. Snapshot previous state for rollback on error
     const prevHasLiked = hasLiked;
