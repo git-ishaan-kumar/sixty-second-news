@@ -245,7 +245,7 @@ export default function CategoryBar({ initialUser = null }: CategoryBarProps) {
     ...(user
       ? [
           { id: 'for_you', label: 'For You', icon: <SparklesIcon /> },
-          { id: 'trending', label: 'Trending', icon: <TrendingIcon /> }
+          { id: 'all', label: 'Trending', icon: <TrendingIcon /> }
         ]
       : [{ id: 'all', label: 'All', icon: <GlobeIcon /> }]),
     { id: 'politics_government', label: 'Politics', icon: <PoliticsIcon /> },

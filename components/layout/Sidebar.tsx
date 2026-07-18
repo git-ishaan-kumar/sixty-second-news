@@ -343,7 +343,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
   const isProfileActive = pathname === '/profile';
 
   return (
-    <aside className="w-16 md:w-64 h-screen flex flex-col justify-between p-3 pb-8 md:pb-6 bg-pitch-charcoal border-r border-muted-slate/10 text-pure-white transition-all duration-300 z-50 flex-shrink-0 sticky top-0 font-montserrat">
+    <aside className="hidden md:flex md:w-64 h-screen flex-col justify-between p-3 pb-8 md:pb-6 bg-pitch-charcoal border-r border-muted-slate/10 text-pure-white transition-all duration-300 z-50 flex-shrink-0 sticky top-0 font-montserrat">
       
       {/* Top Group: Brand Header and Navigation Links */}
       <div className="flex flex-col gap-2 w-full">

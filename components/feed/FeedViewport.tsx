@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Article } from '@/types/supabase';
 import NewsCard from './NewsCard';
+import { markAsSeen } from '@/app/actions';
 
 interface FeedViewportProps {
   articles: Article[];
@@ -18,6 +19,23 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
   useEffect(() => {
     activeIndexRef.current = activeIndex;
   }, [activeIndex]);
+
+  // Reset feed viewport state on articles / category changes
+  useEffect(() => {
+    setActiveIndex(0);
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+    }
+  }, [articles]);
+
+  // Mark article as seen when active index changes
+  useEffect(() => {
+    if (articles.length > 0 && articles[activeIndex]) {
+      markAsSeen(articles[activeIndex].id).catch((err) => {
+        console.error('Failed to mark article as seen:', err);
+      });
+    }
+  }, [activeIndex, articles]);
 
   const scrollToIndex = useCallback((index: number) => {
     if (!containerRef.current || articles.length === 0) return;
@@ -118,7 +136,7 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="w-full max-w-[450px] overflow-y-auto scroll-smooth snap-y snap-mandatory scrollbar-none flex flex-col"
+        className="w-full max-w-[450px] md:max-w-[480px] overflow-y-auto scroll-smooth snap-y snap-mandatory scrollbar-none flex flex-col"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
@@ -128,7 +146,7 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
         {articles.map((article) => (
           <div
             key={article.id}
-            className="w-full flex-shrink-0 snap-start snap-always"
+            className="w-full flex-shrink-0 snap-start snap-always flex items-center justify-center p-0 md:p-4"
             style={{ height: 'calc(100vh - 57px)' }}
           >
             <NewsCard article={article} />

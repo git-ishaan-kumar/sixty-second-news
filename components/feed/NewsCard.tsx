@@ -30,8 +30,8 @@ const categoryLabels: Record<string, string> = {
   environment: 'Environment',
 };
 
-// SVG Heart Icon
-const HeartIcon = ({ filled }: { filled: boolean }) => (
+// SVG Thumbs Up Icon
+const ThumbsUpIcon = ({ filled }: { filled: boolean }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
@@ -42,7 +42,7 @@ const HeartIcon = ({ filled }: { filled: boolean }) => (
     strokeLinejoin="round"
     className="w-5 h-5 transition-transform duration-300"
   >
-    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+    <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
   </svg>
 );
 
@@ -58,13 +58,15 @@ const ThumbsDownIcon = ({ filled }: { filled: boolean }) => (
     strokeLinejoin="round"
     className="w-5 h-5 transition-transform duration-300"
   >
-    <path d="M17 14V2a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V8h4" />
-    <path d="M21 14a2 2 0 0 1-2 2h-4v4a2 2 0 0 1-2 2H9" />
+    <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" />
   </svg>
 );
 
 export default function NewsCard({ article }: NewsCardProps) {
   const { title, description, image, category, subcategory, source_url, published_at, likes, dislikes } = article;
+
+  // Format subcategory replacing underscores with spaces
+  const formattedSubcategory = subcategory ? subcategory.replace(/_/g, ' ') : '';
 
   // Local state for optimistic UI updates
   const [hasLiked, setHasLiked] = useState(false);
@@ -222,13 +224,13 @@ export default function NewsCard({ article }: NewsCardProps) {
   };
 
   return (
-    <div className="relative w-full h-full group bg-[#16161A] overflow-hidden">
+    <div className="relative w-full h-full rounded-none border-none md:max-w-md md:aspect-[9/16] md:rounded-2xl md:border md:border-white/10 md:shadow-2xl group bg-[#16161A] overflow-hidden flex flex-col">
       {/* Clickable News Card Link */}
       <a
         href={source_url}
         target="_blank"
         rel="noopener noreferrer"
-        className="block w-full h-full relative select-none outline-none"
+        className="block w-full h-full relative select-none outline-none flex-1"
       >
         {/* Background Media Layer */}
         {isPlaceholder ? (
@@ -246,34 +248,32 @@ export default function NewsCard({ article }: NewsCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-[#16161A] via-black/45 to-black/20 z-10" />
 
         {/* Content Overlay Container (pr-20 prevents text overlapping with interaction buttons) */}
-        <div className="absolute inset-0 z-20 flex flex-col justify-end p-6 md:p-10 pr-20 md:pr-24 text-pure-white">
-          {/* Category Pill and Subcategory Tag */}
-          <div className="flex items-center gap-2 mb-3">
-            <span className="px-2.5 py-1 text-[10px] font-tiktok-sans font-bold uppercase tracking-wider bg-hyper-blue/20 text-hyper-blue border border-hyper-blue/30 rounded-full">
-              {displayCategory}
-            </span>
-            {subcategory && (
-              <span className="px-2.5 py-1 text-[10px] font-tiktok-sans font-semibold uppercase tracking-wider bg-pure-white/10 text-pure-white/80 border border-pure-white/15 rounded-full">
-                #{subcategory}
-              </span>
-            )}
-            <span className="px-2.5 py-1 text-[10px] font-tiktok-sans font-semibold bg-pure-white/10 text-pure-white/80 border border-pure-white/15 rounded-full flex items-center gap-1">
-              🔥 {article.interest_score}
-            </span>
+        <div className="absolute inset-0 z-20 flex flex-col justify-end p-6 md:p-10 pr-20 md:pr-24 text-pure-white gap-3.5">
+          <div className="flex flex-col gap-1.5">
+            {/* Category • Subcategory Sleek Minimalist Header */}
+            <div className="text-[10px] md:text-xs font-tiktok-sans font-bold uppercase tracking-widest text-muted-slate/75 flex items-center gap-1.5 select-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+              <span>{displayCategory}</span>
+              {formattedSubcategory && (
+                <>
+                  <span className="text-muted-slate/40">•</span>
+                  <span>{formattedSubcategory}</span>
+                </>
+              )}
+            </div>
+
+            {/* Article Hook Title - Wrap dynamically, no line-clamp */}
+            <h2 className="font-montserrat font-extrabold text-2xl md:text-3xl leading-snug tracking-tight text-pure-white drop-shadow-[0_3px_8px_rgba(0,0,0,1.0)]">
+              {title}
+            </h2>
           </div>
 
-          {/* Article Hook Title */}
-          <h2 className="font-montserrat font-extrabold text-2xl md:text-3xl leading-snug mb-3 tracking-tight text-pure-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-            {title}
-          </h2>
-
-          {/* Article Hook Description */}
-          <p className="font-tiktok-sans font-normal text-sm md:text-base text-muted-slate leading-relaxed mb-4 line-clamp-3 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+          {/* Article Hook Description - Wrap dynamically, no line-clamp */}
+          <p className="font-tiktok-sans font-normal text-sm md:text-base text-muted-slate leading-relaxed drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
             {description}
           </p>
 
-          {/* Source Branding Metadata */}
-          <div className="flex items-center gap-2 text-xs font-semibold text-muted-slate/80">
+          {/* Source Branding Metadata - Offset with top margin for safety gap */}
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-slate/60 mt-1 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.95)]">
             <span>{domain}</span>
             {formattedTime && (
               <>
@@ -287,7 +287,7 @@ export default function NewsCard({ article }: NewsCardProps) {
 
       {/* Floating Interaction Buttons Layer (positioned on the right edge, z-30 overlays card) */}
       <div className="absolute right-4 md:right-6 bottom-24 md:bottom-28 z-30 flex flex-col items-center gap-5">
-        {/* Like Button */}
+        {/* Like (Thumbs Up) Button */}
         <div className="flex flex-col items-center gap-1">
           <button
             onClick={handleLike}
@@ -298,14 +298,14 @@ export default function NewsCard({ article }: NewsCardProps) {
                 : 'bg-black/40 border-white/10 text-pure-white hover:bg-black/60 hover:border-white/25 hover:scale-105'
             }`}
           >
-            <HeartIcon filled={hasLiked} />
+            <ThumbsUpIcon filled={hasLiked} />
           </button>
           <span className="font-montserrat text-xs font-bold text-pure-white/90 drop-shadow-md select-none">
             {likeCount}
           </span>
         </div>
 
-        {/* Dislike Button */}
+        {/* Dislike (Thumbs Down) Button */}
         <div className="flex flex-col items-center gap-1">
           <button
             onClick={handleDislike}

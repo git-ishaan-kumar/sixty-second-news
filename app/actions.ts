@@ -69,7 +69,19 @@ export async function getFeed(category: string | 'all'): Promise<Article[]> {
 export async function getPersonalizedFeed(userId: string): Promise<Article[]> {
   const supabase = await createClient();
 
-  // 1. Fetch the user's profile and category ratings
+  // 1. Fetch user's seen articles to filter out
+  const { data: seenRecords, error: seenError } = await supabase
+    .from('user_seen_articles')
+    .select('article_id')
+    .eq('user_id', userId);
+
+  if (seenError) {
+    console.error('Error fetching seen articles:', seenError);
+  }
+
+  const seenIds = seenRecords?.map((r) => r.article_id) || [];
+
+  // 2. Fetch the user's profile and category ratings
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('category_ratings')
@@ -91,10 +103,14 @@ export async function getPersonalizedFeed(userId: string): Promise<Article[]> {
     environment: 0,
   };
 
-  // 2. Fetch recent articles
-  const { data: articles, error: articlesError } = await supabase
-    .from('articles')
-    .select('*');
+  // 3. Fetch recent articles (filtering out seen ones if any exist)
+  let query = supabase.from('articles').select('*');
+
+  if (seenIds.length > 0) {
+    query = query.not('id', 'in', `(${seenIds.join(',')})`);
+  }
+
+  const { data: articles, error: articlesError } = await query;
 
   if (articlesError) {
     console.error('Error fetching articles in getPersonalizedFeed:', articlesError);
@@ -260,5 +276,40 @@ export async function mutateArticleReaction(
     likes: updatedLikes,
     dislikes: updatedDislikes,
   };
+}
+
+/**
+ * Inserts a record indicating that the user has seen this article,
+ * preventing it from appearing in their feed again.
+ *
+ * @param articleId The ID of the article to mark as seen
+ */
+export async function markAsSeen(articleId: string): Promise<{ success: boolean }> {
+  const supabase = await createClient();
+
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return { success: false };
+  }
+
+  const { error } = await supabase
+    .from('user_seen_articles')
+    .insert({
+      user_id: userId,
+      article_id: articleId,
+    });
+
+  if (error) {
+    // If it's a unique constraint error (user already saw it), we can ignore it
+    if (error.code === '23505') {
+      return { success: true };
+    }
+    console.error('Error inserting user_seen_articles record:', error.message);
+    throw new Error(`Failed to mark article as seen: ${error.message}`);
+  }
+
+  return { success: true };
 }
 

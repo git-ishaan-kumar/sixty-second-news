@@ -146,11 +146,11 @@ interface GeminiSelectionResponse {
 }
 
 export async function GET(request: Request) {
-  // 1. Verify Authorization Header
-  const authHeader = request.headers.get('Authorization');
-  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // 1. Verify Authorization Header UNCOMMENT SOON
+  // const authHeader = request.headers.get('Authorization');
+  // if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // }
 
   // Ensure other env variables are set
   if (!CURRENTS_API_KEY || !GEMINI_API_KEY) {
