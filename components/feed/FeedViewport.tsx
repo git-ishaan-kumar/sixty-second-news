@@ -374,31 +374,25 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
   // Front Active card layout style properties
   const activeCardStyle: React.CSSProperties = {
     transition: transitionStyle,
-    transform: dragY <= 0
-      ? `translateY(${dragY}px) scale(1)`
-      : `translateY(0px) scale(${1 - 0.05 * progress})`,
-    opacity: dragY <= 0 ? 1 : 1 - 0.5 * progress,
-    zIndex: dragY <= 0 ? 20 : 10,
+    transform: `translateY(${dragY}px)`,
+    opacity: 1,
+    zIndex: 20,
   };
 
-  // Next queued card layout style properties (rendered directly behind active card)
+  // Next queued card layout style properties (prepared to slide up from below)
   const nextCardStyle: React.CSSProperties = {
     transition: transitionStyle,
-    transform: dragY <= 0
-      ? `translateY(0px) scale(${0.95 + 0.05 * progress})`
-      : `translateY(0px) scale(0.95)`,
-    opacity: dragY <= 0 ? 0.5 + 0.5 * progress : 0.5,
-    zIndex: 10,
+    transform: `translateY(${containerHeight + dragY}px)`,
+    opacity: 1,
+    zIndex: 20,
   };
 
-  // Previous card layout style properties (prepared to slide in from above)
+  // Previous card layout style properties (prepared to slide down from above)
   const prevCardStyle: React.CSSProperties = {
     transition: transitionStyle,
-    transform: dragY > 0
-      ? `translateY(${-containerHeight + dragY}px)`
-      : `translateY(${-containerHeight}px)`,
+    transform: `translateY(${-containerHeight + dragY}px)`,
     opacity: 1,
-    zIndex: 30,
+    zIndex: 20,
   };
 
   return (
