@@ -5,6 +5,7 @@ import { Article } from '@/types/supabase';
 import NewsCard from './NewsCard';
 import { markAsSeen } from '@/app/actions';
 import { createClient } from '@/utils/supabase/client';
+import Link from 'next/link';
 
 interface FeedViewportProps {
   articles: Article[];
@@ -18,6 +19,10 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
   // User category personalization ratings and session reaction states
   const [sessionRatings, setSessionRatings] = useState<Record<string, number>>({});
   const [ratedArticles, setRatedArticles] = useState<Record<string, 'like' | 'dislike'>>({});
+  
+  // Auth state for prompt card
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [dismissAuthPrompt, setDismissAuthPrompt] = useState(false);
 
   // Swipe gesture & transition states
   const [dragY, setDragY] = useState(0);
@@ -40,21 +45,7 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.id) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('category_ratings')
-          .eq('id', session.user.id)
-          .single();
-        if (profile?.category_ratings) {
-          setSessionRatings(profile.category_ratings);
-        }
-      }
-    };
-    fetchRatings();
-
-    const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_, session) => {
-      if (session?.user?.id) {
+        setIsAuthenticated(true);
         const { data: profile } = await supabase
           .from('profiles')
           .select('category_ratings')
@@ -64,6 +55,25 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
           setSessionRatings(profile.category_ratings);
         }
       } else {
+        setIsAuthenticated(false);
+      }
+    };
+    fetchRatings();
+
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_, session) => {
+      if (session?.user?.id) {
+        setIsAuthenticated(true);
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('category_ratings')
+          .eq('id', session.user.id)
+          .single();
+        if (profile?.category_ratings) {
+          setSessionRatings(profile.category_ratings);
+        }
+      } else {
+        setIsAuthenticated(false);
         setSessionRatings({});
       }
     });
@@ -405,7 +415,7 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
   };
 
   return (
-    <div className="flex-1 w-full flex justify-center bg-[#16161A] overflow-hidden">
+    <div className="flex-1 w-full flex justify-center bg-[#16161A] overflow-hidden relative">
       {/* Interaction Card Stack Layer */}
       <div
         ref={containerRef}
@@ -450,6 +460,49 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
           </div>
         )}
       </div>
+
+      {/* Onboarding Prompt Overlay */}
+      {isAuthenticated === false && !dismissAuthPrompt && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] md:w-[85%] max-w-3xl bg-[#16161A] rounded-2xl p-6 md:p-8 border border-[#9CA3AF]/20 z-[100] shadow-2xl flex flex-col md:flex-row items-center gap-6 md:gap-8 animate-in fade-in zoom-in-95 font-tiktok-sans">
+          <button 
+            onClick={() => setDismissAuthPrompt(true)}
+            className="absolute top-4 right-4 text-[#9CA3AF] hover:text-[#FFFFFF] transition-colors p-1"
+            aria-label="Dismiss"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          
+          <div className="flex-1 w-full mt-2 md:mt-0">
+            <h3 className="text-2xl md:text-3xl font-bold text-[#FFFFFF] mb-4">Unlock Your Feed</h3>
+            <ul className="text-sm md:text-base text-[#FFFFFF]/80 space-y-3 font-medium">
+              <li className="flex items-start gap-2">
+                <span className="mt-1 text-inherit">•</span>
+                <span>Get a personalized mix based on your favorite categories.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1 text-inherit">•</span>
+                <span>Automatically hide headlines you’ve already seen.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1 text-inherit">•</span>
+                <span>Like, dislike, and discover new content seamlessly.</span>
+              </li>
+            </ul>
+          </div>
+          
+          <div className="flex flex-col gap-3 w-full md:w-56 mt-2 md:mt-0 shrink-0">
+            <Link href="/signup" className="w-full bg-[#2F80ED] hover:bg-hyper-blue/90 text-[#FFFFFF] py-3 px-4 rounded-xl text-center font-semibold text-sm transition-colors shadow-lg">
+              Register
+            </Link>
+            <Link href="/login" className="w-full bg-[#16161A] border border-[#9CA3AF]/40 hover:bg-white/10 text-[#FFFFFF] py-3 px-4 rounded-xl text-center font-semibold text-sm transition-colors">
+              Log In
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
