@@ -297,19 +297,69 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
 
     const newTime = calculateTimeLeft();
     setTimeLeft(newTime);
+    
+    let syncInterval: NodeJS.Timeout | null = null;
+    let syncTimeout: NodeJS.Timeout | null = null;
+
+    const checkSyncStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('sync_logs')
+          .select('created_at')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (data && data.created_at) {
+          const createdAt = new Date(data.created_at).getTime();
+          const nowMs = new Date().getTime();
+          const diffMs = nowMs - createdAt;
+          
+          // Check if record was created within the last 2 minutes
+          if (diffMs < 120 * 1000) {
+            setShowFreshHeadlines(true);
+            if (syncInterval) clearInterval(syncInterval);
+            if (syncTimeout) clearTimeout(syncTimeout);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching sync log:', err);
+      }
+    };
+
+    const startSyncPolling = () => {
+      // Check immediately once
+      checkSyncStatus();
+      
+      // Setup recursive 5-second backoff poll
+      syncInterval = setInterval(checkSyncStatus, 5000);
+      
+      // Safe timeout after 60 seconds
+      syncTimeout = setTimeout(() => {
+        if (syncInterval) clearInterval(syncInterval);
+      }, 60000);
+    };
+
+    // If page is loaded exactly on 00:00
     if (newTime === '00:00') {
-      setShowFreshHeadlines(true);
+      startSyncPolling();
     }
 
     const timer = setInterval(() => {
-      const t = calculateTimeLeft();
-      setTimeLeft(t);
-      if (t === '00:00') {
-        setShowFreshHeadlines(true);
-      }
+      setTimeLeft((prev) => {
+        const t = calculateTimeLeft();
+        if (t === '00:00' && prev !== '00:00') {
+          startSyncPolling();
+        }
+        return t;
+      });
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      if (syncInterval) clearInterval(syncInterval);
+      if (syncTimeout) clearTimeout(syncTimeout);
+    };
   }, []);
 
   // 3. PWA Install App Logic & Event Listeners

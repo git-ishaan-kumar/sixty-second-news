@@ -392,6 +392,15 @@ STRICT CONSTRAINT RULES:
       console.log(`Hygiene complete. Deleted ${deletedData?.length || 0} old articles.`);
     }
 
+    // 8. Database Sync Tracking - Insert completion confirmation log
+    const { error: syncLogError } = await supabase
+      .from('sync_logs')
+      .insert({ status: 'completed' });
+      
+    if (syncLogError) {
+      console.error('Failed to write completion to sync_logs:', syncLogError);
+    }
+
     return NextResponse.json({
       success: true,
       processed: articlesToUpsert.length,
