@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 
 interface NewsCardProps {
   article: Article;
+  onReact?: (articleId: string, action: 'like' | 'unlike' | 'dislike' | 'undislike') => void;
 }
 
 // Subtle, unique gradient background specific to each of the 7 categories
@@ -64,7 +65,7 @@ const ThumbsDownIcon = ({ filled }: { filled: boolean }) => (
   </svg>
 );
 
-export default function NewsCard({ article }: NewsCardProps) {
+export default function NewsCard({ article, onReact }: NewsCardProps) {
   const { title, description, image, category, subcategory, source_url, published_at, likes, dislikes } = article;
 
   // Format subcategory replacing underscores with spaces
@@ -154,9 +155,11 @@ export default function NewsCard({ article }: NewsCardProps) {
     if (hasLiked) {
       setHasLiked(false);
       setLikeCount((prev) => Math.max(0, prev - 1));
+      if (onReact) onReact(article.id, 'unlike');
     } else {
       setHasLiked(true);
       setLikeCount((prev) => prev + 1);
+      if (onReact) onReact(article.id, 'like');
       if (hasDisliked) {
         setHasDisliked(false);
         setDislikeCount((prev) => Math.max(0, prev - 1));
@@ -191,6 +194,16 @@ export default function NewsCard({ article }: NewsCardProps) {
       setHasDisliked(prevHasDisliked);
       setLikeCount(prevLikeCount);
       setDislikeCount(prevDislikeCount);
+      if (onReact) {
+        if (prevHasLiked) {
+          onReact(article.id, 'like');
+        } else {
+          onReact(article.id, 'unlike');
+          if (prevHasDisliked) {
+            onReact(article.id, 'dislike');
+          }
+        }
+      }
     }
   };
 
@@ -214,9 +227,11 @@ export default function NewsCard({ article }: NewsCardProps) {
     if (hasDisliked) {
       setHasDisliked(false);
       setDislikeCount((prev) => Math.max(0, prev - 1));
+      if (onReact) onReact(article.id, 'undislike');
     } else {
       setHasDisliked(true);
       setDislikeCount((prev) => prev + 1);
+      if (onReact) onReact(article.id, 'dislike');
       if (hasLiked) {
         setHasLiked(false);
         setLikeCount((prev) => Math.max(0, prev - 1));
@@ -251,6 +266,16 @@ export default function NewsCard({ article }: NewsCardProps) {
       setHasDisliked(prevHasDisliked);
       setLikeCount(prevLikeCount);
       setDislikeCount(prevDislikeCount);
+      if (onReact) {
+        if (prevHasDisliked) {
+          onReact(article.id, 'dislike');
+        } else {
+          onReact(article.id, 'undislike');
+          if (prevHasLiked) {
+            onReact(article.id, 'like');
+          }
+        }
+      }
     }
   };
 
