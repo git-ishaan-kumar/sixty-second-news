@@ -268,7 +268,7 @@ For each item you choose, you must completely rewrite the text fields to match p
 
 STRICT CONSTRAINT RULES:
 - Max 3 items assigned to any single category string.
-- No topical duplication.`,
+- NO TOPICAL DUPLICATION: Scan across all categories for overlapping subject matter or shared core nouns (e.g., matching stories about the same celebrity incident like the Tate brothers, or the same cinematic event like Christopher Nolan). If multiple publishers are covering the exact same real-world event, cherrypick only the single most informative article variant with the highest natural structural interest value and ignore the remaining copies entirely.`,
           },
         ],
       },
