@@ -360,7 +360,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
   const isProfileActive = pathname === '/profile';
 
   return (
-    <aside className="hidden md:flex md:w-64 h-screen flex-col justify-between p-3 pb-8 md:pb-6 bg-pitch-charcoal border-r border-muted-slate/10 text-pure-white transition-all duration-300 z-50 flex-shrink-0 sticky top-0 font-montserrat">
+    <aside className="flex w-16 md:w-64 h-screen flex-col justify-between p-2 md:p-3 pb-8 md:pb-6 bg-pitch-charcoal border-r border-muted-slate/10 text-pure-white transition-all duration-300 z-50 flex-shrink-0 sticky top-0 font-montserrat">
       
       {/* Top Group: Brand Header and Navigation Links */}
       <div className="flex flex-col gap-2 w-full">
@@ -403,7 +403,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
           {/* Home/Feed Link */}
           <button
             onClick={() => handleNav('/')}
-            className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+            className={`w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
               isHomeActive
                 ? 'text-hyper-blue bg-hyper-blue/10'
                 : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
@@ -419,7 +419,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
           {user && (
             <button
               onClick={() => handleNav('/?category=trending')}
-              className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+              className={`w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
                 isTrendingActive
                   ? 'text-hyper-blue bg-hyper-blue/10'
                   : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
@@ -433,7 +433,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
           {/* Latest Link */}
           <button
             onClick={() => handleNav('/latest')}
-            className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+            className={`w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
               isLatestActive
                 ? 'text-hyper-blue bg-hyper-blue/10'
                 : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
@@ -443,34 +443,30 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
             <span className="hidden md:inline">Latest</span>
           </button>
 
-          {/* Profile Link */}
-          <button
-            onClick={() => {
-              if (user) {
+          {/* Profile Link (Logged in users only) */}
+          {user && (
+            <button
+              onClick={() => {
                 setIsProfileOpen(!isProfileOpen);
-              } else {
-                handleNav('/login');
-              }
-            }}
-            className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              isProfileActive
-                ? 'text-hyper-blue bg-hyper-blue/10'
-                : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
-            }`}
-          >
-            {user && profile?.username ? (
-              <div className={`w-5 h-5 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white text-[10px] font-bold flex-shrink-0 uppercase border ${isProfileActive ? 'border-pure-white' : 'border-transparent'}`}>
-                {profile.username.charAt(0)}
-              </div>
-            ) : user ? (
-              <div className={`w-5 h-5 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white text-[10px] font-bold flex-shrink-0 uppercase border ${isProfileActive ? 'border-pure-white' : 'border-transparent'}`}>
-                {user.email?.charAt(0) || 'U'}
-              </div>
-            ) : (
-              <ProfileIcon />
-            )}
-            <span className="hidden md:inline">Profile</span>
-          </button>
+              }}
+              className={`w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                isProfileActive
+                  ? 'text-hyper-blue bg-hyper-blue/10'
+                  : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
+              }`}
+            >
+              {profile?.username ? (
+                <div className={`w-5 h-5 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white text-[10px] font-bold flex-shrink-0 uppercase border ${isProfileActive ? 'border-pure-white' : 'border-transparent'}`}>
+                  {profile.username.charAt(0)}
+                </div>
+              ) : (
+                <div className={`w-5 h-5 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white text-[10px] font-bold flex-shrink-0 uppercase border ${isProfileActive ? 'border-pure-white' : 'border-transparent'}`}>
+                  {user.email?.charAt(0) || 'U'}
+                </div>
+              )}
+              <span className="hidden md:inline">Profile</span>
+            </button>
+          )}
 
           {/* Profile Dropdown Options */}
           {user && isProfileOpen && (
@@ -481,7 +477,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
                   handleNav('/profile');
                   setIsProfileOpen(false);
                 }}
-                className="w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all text-xs font-semibold"
+                className="w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3 py-2 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all text-xs font-semibold"
                 title="Settings"
               >
                 <SettingsIcon />
@@ -490,7 +486,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
               {/* Log Out Option */}
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-xs font-semibold cursor-pointer"
+                className="w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-xs font-semibold cursor-pointer"
                 title="Log Out"
               >
                 <LogoutIcon />
@@ -544,14 +540,13 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
       <div className="flex flex-col gap-3 w-full">
         {/* Client-side 'Install App' trigger button */}
         {showInstallBtn && (
-          <div className="relative w-full border-t border-muted-slate/10 pt-2 flex flex-col items-center">
+          <div className="md:hidden relative w-full border-t border-muted-slate/10 pt-2 flex flex-col items-center animate-fadeIn">
             <button
               onClick={handleInstallClick}
-              className="w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all text-sm font-medium cursor-pointer text-left"
+              className="w-full flex items-center justify-center gap-3 px-2 py-2.5 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all text-sm font-medium cursor-pointer"
               title="Install App"
             >
               <InstallIcon />
-              <span className="hidden md:inline">Install App</span>
             </button>
             
             {showIosTooltip && (
@@ -567,10 +562,10 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
         )}
 
         {/* Footer (Countdown & Logged in Indicator) */}
-        <div className="border-t border-muted-slate/10 pt-3 flex flex-col gap-3 select-none">
+        <div className="hidden md:flex border-t border-muted-slate/10 pt-3 flex-col gap-3 select-none">
           {/* Countdown Widget */}
-          <div className="flex flex-col items-center md:items-start gap-0.5">
-            <span className="hidden md:block text-[9px] uppercase tracking-wider text-muted-slate font-bold">
+          <div className="flex flex-col items-start gap-0.5">
+            <span className="text-[9px] uppercase tracking-wider text-muted-slate font-bold">
               Next Refresh
             </span>
             <span className="text-xs md:text-sm font-extrabold font-mono text-hyper-blue bg-hyper-blue/5 border border-hyper-blue/10 px-2 py-1 rounded-md">
@@ -580,7 +575,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
           
           {/* Logged in Indicator */}
           {user && (
-            <div className="hidden md:block text-[10px] text-muted-slate border-t border-muted-slate/5 pt-2">
+            <div className="text-[10px] text-muted-slate border-t border-muted-slate/5 pt-2">
               Signed in as <span className="text-pure-white block truncate">@{profile?.username || user.email?.split('@')[0]}</span>
             </div>
           )}

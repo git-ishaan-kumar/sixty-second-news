@@ -55,7 +55,7 @@ export default async function RootLayout({
       className={`${tiktokSans.variable} ${montserrat.variable} h-full antialiased`}
     >
       <body className={`${tiktokSans.className} min-h-full flex bg-background text-foreground`}>
-        <Suspense fallback={<div className="hidden md:block w-64 h-screen bg-pitch-charcoal border-r border-muted-slate/10 flex-shrink-0" />}>
+        <Suspense fallback={<div className="w-16 md:w-64 h-screen bg-pitch-charcoal border-r border-muted-slate/10 flex-shrink-0" />}>
           <Sidebar initialUser={initialUser} initialProfile={initialProfile} />
         </Suspense>
         <main className="flex-1 flex flex-col min-w-0">
