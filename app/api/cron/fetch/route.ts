@@ -124,6 +124,7 @@ interface CurrentsArticle {
   id: string;
   title: string;
   description: string;
+  content?: string;
   url: string;
   author: string;
   image: string;
@@ -208,7 +209,8 @@ export async function GET(request: Request) {
               const domain = urlObj.hostname.replace('www.', '');
               
               const isWhitelisted = UNIVERSAL_POOL.includes(domain) || whitelist.includes(domain);
-              if (isWhitelisted && item.description && item.title) {
+              const hasText = item.content?.trim() || item.description?.trim();
+              if (isWhitelisted && hasText && item.title) {
                 globalFilteredPool.push(item);
                 categoryIngestedCount++;
               }
@@ -235,7 +237,8 @@ export async function GET(request: Request) {
     // 4. Build selection prompt for Gemini
     let globalSelectionPrompt = 'Review this aggregated pool of global breaking news and select the absolute best items:\n\n';
     globalFilteredPool.forEach((article, i) => {
-      globalSelectionPrompt += `Index: ${i} | Raw Title: ${article.title} - Raw Description: ${article.description}\n`;
+      const articleText = article.content?.trim() || article.description?.trim() || '';
+      globalSelectionPrompt += `Index: ${i} | Raw Title: ${article.title} - Article Body Text: ${articleText}\n`;
     });
 
     // 5. Query Gemini API
@@ -258,7 +261,7 @@ export async function GET(request: Request) {
 DYNAMIC EDITORIAL REWRITING MANDATE:
 For each item you choose, you must completely rewrite the text fields to match premium news standards before returning them:
 1. 'title': Rewrite into a snappy, front-loaded, high-engagement headline under 80 characters. Use strict, standard Title Case. Never pass raw or lazy titles.
-2. 'description': Completely ignore boring source placeholders like 'Get caught up'. Rewrite into a single, highly intriguing sentence hook in standard Sentence Case that forces a user to click.
+2. 'description': EXTRACT HARD FACT SUMMARY. Completely ignore lazy teaser strings or clickbait hooks like 'we uncover this in our article'. Read the entire provided Article Body Text and synthesize its primary factual outcome into a single, comprehensive sentence case summary hook that delivers hard news values.
 3. 'category': Classify into one of these strict lowercase strings: politics_government, economy_business_finance, science_technology, sport, arts_culture_entertainment, crime_law_justice, environment.
 4. 'subcategory': Define a sharp single-word lowercase or snake_case noun classification.
 5. 'interest_score': Assign an engagement value from 1 to 100 based entirely on how shocking or engaging the story is.

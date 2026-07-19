@@ -112,7 +112,11 @@ def run_pipeline():
                     continue
                     
                 domain = urlparse(article_url).hostname.replace("www.", "")
-                if (domain in UNIVERSAL_POOL or domain in whitelist) and article.get("description"):
+                article_text = article.get("content")
+                if not article_text or article_text.strip() == "":
+                    article_text = article.get("description")
+                
+                if (domain in UNIVERSAL_POOL or domain in whitelist) and article_text and article_text.strip():
                     global_filtered_pool.append(article)
             except Exception:
                 continue
@@ -123,7 +127,10 @@ def run_pipeline():
         
     global_selection_prompt = "Review this aggregated pool of global breaking news and select the absolute best items:\n\n"
     for i, article in enumerate(global_filtered_pool):
-        global_selection_prompt += f"Index: {i} | Raw Title: {article.get('title')} - Raw Description: {article.get('description')}\n"
+        article_text = article.get("content")
+        if not article_text or article_text.strip() == "":
+            article_text = article.get("description", "")
+        global_selection_prompt += f"Index: {i} | Raw Title: {article.get('title')} - Article Body Text: {article_text}\n"
         
     selection_response = client.models.generate_content(
         model="gemini-3.1-flash-lite",
@@ -135,7 +142,7 @@ def run_pipeline():
                 "DYNAMIC EDITORIAL REWRITING MANDATE:\n"
                 "For each item you choose, you must completely rewrite the text fields to match premium news standards before returning them:\n"
                 "1. 'title': Rewrite into a snappy, front-loaded, high-engagement headline under 80 characters. Use strict, standard Title Case. Never pass raw or lazy titles.\n"
-                "2. 'description': Completely ignore boring source placeholders like 'Get caught up'. Rewrite into a single, highly intriguing sentence hook in standard Sentence Case that forces a user to click.\n"
+                "2. 'description': EXTRACT HARD FACT SUMMARY. Completely ignore lazy teaser strings or clickbait hooks like 'we uncover this in our article'. Read the entire provided Article Body Text and synthesize its primary factual outcome into a single, comprehensive sentence case summary hook that delivers hard news values.\n"
                 "3. 'category': Classify into one of these strict lowercase strings: politics_government, economy_business_finance, science_technology, sport, arts_culture_entertainment, crime_law_justice, environment.\n"
                 "4. 'subcategory': Define a sharp single-word lowercase or snake_case noun classification.\n"
                 "5. 'interest_score': Assign an engagement value from 1 to 100 based entirely on how shocking or engaging the story is.\n\n"
