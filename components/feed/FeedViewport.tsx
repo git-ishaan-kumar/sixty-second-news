@@ -250,9 +250,12 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
     }
   }, [localArticles, ratedArticles, sessionRatings, reSortUpcomingArticles]);
 
-  // Performs the actual stack navigation transitions
   const triggerSwipe = useCallback((direction: 'next' | 'prev') => {
     if (isTransitioning || localArticles.length <= 1) return;
+    
+    // Boundary check: prevent navigating to the previous card if we are on the first item
+    if (direction === 'prev' && activeIndexRef.current === 0) return;
+
     setIsTransitioning(true);
     isLocked.current = true;
 
@@ -322,7 +325,13 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || isTransitioning || localArticles.length <= 1) return;
     const currentY = e.touches[0].clientY;
-    const deltaY = currentY - touchStartRef.current;
+    let deltaY = currentY - touchStartRef.current;
+
+    // Boundary check: prevent swipe down (positive deltaY) on the first card
+    if (activeIndex === 0 && deltaY > 0) {
+      deltaY = 0;
+    }
+
     setDragY(deltaY);
   };
 
@@ -361,7 +370,7 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
   const nextIndex = (activeIndex + 1) % localArticles.length;
 
   const currentArticle = localArticles[activeIndex];
-  const prevArticle = localArticles.length > 1 ? localArticles[prevIndex] : null;
+  const prevArticle = (localArticles.length > 1 && activeIndex !== 0) ? localArticles[prevIndex] : null;
   const nextArticle = localArticles.length > 1 ? localArticles[nextIndex] : null;
 
   // Transform mechanics and progress math
