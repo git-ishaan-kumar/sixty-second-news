@@ -38,6 +38,22 @@ const TrendingIcon = ({ active }: { active: boolean }) => (
   </svg>
 );
 
+const LatestIcon = ({ active }: { active: boolean }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="w-5 h-5 flex-shrink-0 transition-colors"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 15 15" />
+  </svg>
+);
+
 const SearchIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -340,6 +356,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
 
   const isHomeActive = pathname === '/' && (user ? currentCategory === 'for_you' : currentCategory !== 'trending');
   const isTrendingActive = pathname === '/' && (user ? currentCategory !== 'for_you' : currentCategory === 'trending');
+  const isLatestActive = pathname === '/latest';
   const isProfileActive = pathname === '/profile';
 
   return (
@@ -412,6 +429,19 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
               <span className="hidden md:inline">Trending</span>
             </button>
           )}
+
+          {/* Latest Link */}
+          <button
+            onClick={() => handleNav('/latest')}
+            className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+              isLatestActive
+                ? 'text-hyper-blue bg-hyper-blue/10'
+                : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
+            }`}
+          >
+            <LatestIcon active={isLatestActive} />
+            <span className="hidden md:inline">Latest</span>
+          </button>
 
           {/* Profile Link */}
           <button

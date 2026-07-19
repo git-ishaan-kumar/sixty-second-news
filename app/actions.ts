@@ -300,3 +300,35 @@ export async function markAsSeen(articleId: string): Promise<{ success: boolean 
   return { success: true };
 }
 
+/**
+ * Fetches the latest articles from the database, sorted strictly by creation timestamp
+ * (created_at DESC) without tiered group sorting.
+ *
+ * @returns Pure chronological array of articles
+ */
+export async function getLatestFeed(): Promise<Article[]> {
+  const supabase = await createClient();
+
+  const { data: articles, error } = await supabase
+    .from('articles')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching articles in getLatestFeed:', error);
+    throw new Error(`Failed to fetch latest feed: ${error.message}`);
+  }
+
+  return articles || [];
+}
+
+/**
+ * Fetches the trending articles feed.
+ *
+ * @returns Trending feed articles
+ */
+export async function getTrendingFeed(): Promise<Article[]> {
+  return getFeed('all');
+}
+
+

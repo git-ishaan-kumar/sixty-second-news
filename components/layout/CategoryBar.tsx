@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { createClient } from '../../utils/supabase/client';
 
 // SVG Icons for categories
@@ -35,6 +35,22 @@ const TrendingIcon = () => (
   >
     <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
     <polyline points="16 7 22 7 22 13" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="w-4 h-4"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 15 15" />
   </svg>
 );
 
@@ -202,6 +218,7 @@ export default function CategoryBar({ initialUser = null }: CategoryBarProps) {
   const [user, setUser] = useState<any>(initialUser);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const supabase = createClient();
 
   // Scroll drag references & states
@@ -228,11 +245,12 @@ export default function CategoryBar({ initialUser = null }: CategoryBarProps) {
 
   // Determine active category (default to 'for_you' if logged in, otherwise 'all')
   const defaultCategory = user ? 'for_you' : 'all';
-  const activeCategory = searchParams.get('category') || defaultCategory;
+  const activeCategory = pathname === '/latest' ? 'latest' : (searchParams.get('category') || defaultCategory);
 
   const selectCategory = (categoryId: string) => {
-    // If selecting default category, remove query param for cleaner URL
-    if (categoryId === defaultCategory) {
+    if (categoryId === 'latest') {
+      router.push('/latest');
+    } else if (categoryId === defaultCategory) {
       router.push('/');
     } else {
       router.push(`/?category=${categoryId}`);
@@ -248,6 +266,7 @@ export default function CategoryBar({ initialUser = null }: CategoryBarProps) {
           { id: 'all', label: 'Trending', icon: <TrendingIcon /> }
         ]
       : [{ id: 'all', label: 'All', icon: <GlobeIcon /> }]),
+    { id: 'latest', label: 'Latest', icon: <ClockIcon /> },
     { id: 'politics_government', label: 'Politics', icon: <PoliticsIcon /> },
     { id: 'economy_business_finance', label: 'Business', icon: <BusinessIcon /> },
     { id: 'science_technology', label: 'Technology', icon: <TechIcon /> },
