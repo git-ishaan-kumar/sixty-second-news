@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
-import { Article, CATEGORIES, CategoryRatings } from '@/types/supabase';
+import { Article, CategoryRatings } from '@/types/supabase';
 
 /**
  * Fetches articles from the database, filters by category if provided,
@@ -34,25 +34,28 @@ export async function getFeed(category: string | 'all'): Promise<Article[]> {
 
   const now = Date.now();
 
-  const scoredArticles = articles.map((article: Article) => {
-    const publishedTime = new Date(article.published_at).getTime();
-    // Calculate difference in hours
-    const diffMs = now - publishedTime;
-    const hoursSincePublished = Math.max(0, diffMs / (1000 * 60 * 60));
-    
-    // Apply gravity formula: Final Score = interest_score / ((Hours Since Published + 2) ^ 1.5)
-    const finalScore = article.interest_score / Math.pow(hoursSincePublished + 2, 1.5);
+  // Sort using Chronological Tiered Grouping Algorithm
+  const sortedArticles = [...articles].sort((a, b) => {
+    const diffA = now - new Date(a.published_at).getTime();
+    const diffB = now - new Date(b.published_at).getTime();
 
-    return {
-      article,
-      finalScore,
-    };
+    // Group 0 represents 0 to 3 days (0 to 72 hours), Group 1 represents 3 to 6 days (72 to 144 hours), etc.
+    const groupA = Math.max(0, Math.floor(diffA / (72 * 60 * 60 * 1000)));
+    const groupB = Math.max(0, Math.floor(diffB / (72 * 60 * 60 * 1000)));
+
+    if (groupA !== groupB) {
+      return groupA - groupB; // Sort chronological blocks: newest block (Group 0) first
+    }
+
+    if (b.interest_score !== a.interest_score) {
+      return b.interest_score - a.interest_score; // Within the same block, sort by interest_score DESC
+    }
+
+    // Tie-breaker: newest publication date first
+    return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
   });
 
-  // Sort by finalScore in descending order (highest score first)
-  scoredArticles.sort((a, b) => b.finalScore - a.finalScore);
-
-  return scoredArticles.map((item) => item.article);
+  return sortedArticles;
 }
 
 /**
@@ -90,7 +93,6 @@ export async function getPersonalizedFeed(userId: string): Promise<Article[]> {
 
   if (profileError && profileError.code !== 'PGRST116') {
     console.error('Error fetching user profile for personalization:', profileError);
-    // Continue with default ratings if profile fetch fails
   }
 
   const ratings: CategoryRatings = profile?.category_ratings || {
@@ -103,21 +105,7 @@ export async function getPersonalizedFeed(userId: string): Promise<Article[]> {
     environment: 0,
   };
 
-  // 3. Check for new user fallback (all ratings are 0 or empty)
-  const hasNoEngagement = Object.values(ratings).every((score) => score === 0);
-  if (hasNoEngagement) {
-    const feed = await getFeed('all');
-    // Filter out already seen articles to maintain a fresh feed
-    if (seenIds.length > 0) {
-      const filtered = feed.filter((article) => !seenIds.includes(article.id));
-      if (filtered.length > 0) {
-        return filtered;
-      }
-    }
-    return feed;
-  }
-
-  // 4. Fetch recent articles (filtering out seen ones if any exist)
+  // 3. Fetch recent articles (filtering out seen ones if any exist)
   let query = supabase.from('articles').select('*');
 
   if (seenIds.length > 0) {
@@ -131,54 +119,39 @@ export async function getPersonalizedFeed(userId: string): Promise<Article[]> {
     throw new Error(`Failed to fetch articles: ${articlesError.message}`);
   }
 
+  // Fallback if the personalized pool runs dry
   if (!articles || articles.length === 0) {
-    return getFeed('all');
+    const feed = await getFeed('all');
+    if (seenIds.length > 0) {
+      return feed.filter((article) => !seenIds.includes(article.id));
+    }
+    return feed;
   }
 
-  // 3. Group preferred articles (rating > 0) and fallback articles (rating <= 0)
-  const articlesByCategory: Record<string, Article[]> = {};
-  CATEGORIES.forEach((cat) => {
-    articlesByCategory[cat] = [];
-  });
+  const now = Date.now();
 
-  const fallbackArticles: Article[] = [];
+  // Sort using Chronological Tiered Grouping Algorithm
+  const sortedArticles = [...articles].sort((a, b) => {
+    const diffA = now - new Date(a.published_at).getTime();
+    const diffB = now - new Date(b.published_at).getTime();
 
-  articles.forEach((article) => {
-    const rating = ratings[article.category] || 0;
-    if (rating > 0) {
-      articlesByCategory[article.category].push(article);
-    } else {
-      fallbackArticles.push(article);
+    // Group 0 represents 0 to 3 days (0 to 72 hours), Group 1 represents 3 to 6 days (72 to 144 hours), etc.
+    const groupA = Math.max(0, Math.floor(diffA / (72 * 60 * 60 * 1000)));
+    const groupB = Math.max(0, Math.floor(diffB / (72 * 60 * 60 * 1000)));
+
+    if (groupA !== groupB) {
+      return groupA - groupB; // Sort chronological blocks: newest block (Group 0) first
     }
-  });
 
-  // Sort each preferred category group by system interest_score descending
-  CATEGORIES.forEach((cat) => {
-    articlesByCategory[cat].sort((a, b) => b.interest_score - a.interest_score);
-  });
-
-  // Assign personalized score to preferred articles
-  const scoredPreferred: { article: Article; score: number }[] = [];
-  CATEGORIES.forEach((cat) => {
-    const rating = ratings[cat] || 0;
-    if (rating > 0) {
-      articlesByCategory[cat].forEach((article, index) => {
-        // Score = Rating - rank + (interest_score / 100)
-        const score = rating - index + (article.interest_score / 100);
-        scoredPreferred.push({ article, score });
-      });
+    if (b.interest_score !== a.interest_score) {
+      return b.interest_score - a.interest_score; // Within the same block, sort by interest_score DESC
     }
+
+    // Tie-breaker: newest publication date first
+    return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
   });
 
-  // Sort preferred by personalized score descending
-  scoredPreferred.sort((a, b) => b.score - a.score);
-  const sortedPreferred = scoredPreferred.map((item) => item.article);
-
-  // Sort fallback articles by system interest_score descending
-  fallbackArticles.sort((a, b) => b.interest_score - a.interest_score);
-
-  // Combine preferred and fallback articles (fallback is appended to ensure curated pool runs dry fallback)
-  return [...sortedPreferred, ...fallbackArticles];
+  return sortedArticles;
 }
 
 /**
