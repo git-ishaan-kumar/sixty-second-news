@@ -195,6 +195,35 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const urlSearch = searchParams.get('search') || '';
+
+  // Sync search query state with URL changes (e.g. if cleared from outer navigation)
+  useEffect(() => {
+    setSearchQuery(urlSearch);
+  }, [urlSearch]);
+
+  // Debounce URL search param updates to enable smooth "as-you-type" reactive search
+  useEffect(() => {
+    if (searchQuery === urlSearch) return;
+
+    const delayDebounce = setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      if (searchQuery.trim()) {
+        params.set('search', searchQuery);
+        params.set('category', 'all');
+      } else {
+        params.delete('search');
+        if (params.get('category') === 'all') {
+          params.delete('category');
+        }
+      }
+      router.push(`${window.location.pathname}?${params.toString()}`);
+    }, 200);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery, urlSearch, router]);
+
   // 1. Session Auth Fetching & Listener
   useEffect(() => {
     async function getSession() {
@@ -334,6 +363,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
   };
 
   const handleNav = (path: string) => {
+    setSearchQuery('');
     router.push(path);
   };
 
@@ -354,9 +384,11 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
   const defaultCategory = user ? 'for_you' : 'all';
   const currentCategory = searchParams.get('category') || defaultCategory;
 
-  const isHomeActive = pathname === '/' && (user ? currentCategory === 'for_you' : currentCategory !== 'trending');
-  const isTrendingActive = pathname === '/' && (user ? currentCategory !== 'for_you' : currentCategory === 'trending');
-  const isLatestActive = pathname === '/latest';
+  const hasSearch = searchQuery.trim() !== '';
+
+  const isHomeActive = !hasSearch && pathname === '/' && (user ? currentCategory === 'for_you' : currentCategory !== 'trending');
+  const isTrendingActive = !hasSearch && pathname === '/' && (user ? currentCategory !== 'for_you' : currentCategory === 'trending');
+  const isLatestActive = !hasSearch && pathname === '/latest';
   const isProfileActive = pathname === '/profile';
 
   return (
@@ -387,12 +419,23 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
                 placeholder="Search news..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#1e1e24] text-pure-white placeholder-muted-slate text-xs px-3 py-2 rounded-lg border border-muted-slate/20 focus:outline-none focus:border-hyper-blue focus:ring-1 focus:ring-hyper-blue transition-all"
+                className="w-full bg-[#1e1e24] text-pure-white placeholder-muted-slate text-xs pl-3 pr-8 py-2 rounded-lg border border-muted-slate/20 focus:outline-none focus:border-hyper-blue focus:ring-1 focus:ring-hyper-blue transition-all"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-slate hover:text-pure-white transition-colors cursor-pointer"
+                  title="Clear search"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
             {/* Mobile Search Icon Button */}
             <button
-              onClick={() => {}}
+              onClick={() => setIsMobileSearchOpen(true)}
               className="block md:hidden w-full flex items-center justify-center p-2.5 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all"
               title="Search"
             >
@@ -581,6 +624,59 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
           )}
         </div>
       </div>
+
+      {/* Mobile Search Overlay Modal */}
+      {isMobileSearchOpen && (
+        <div className="fixed inset-0 bg-[#16161A]/95 backdrop-blur-md z-[9999] flex flex-col p-4 md:hidden font-montserrat animate-fadeIn">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <span className="text-sm font-bold tracking-wider text-pure-white uppercase">Search News</span>
+            <button
+              onClick={() => setIsMobileSearchOpen(false)}
+              className="p-1 rounded-full bg-[#1e1e24] text-muted-slate hover:text-pure-white transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Search Input Box */}
+          <div className="relative w-full mb-6">
+            <input
+              type="text"
+              placeholder="Search news..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#1e1e24] text-pure-white placeholder-muted-slate text-sm pl-4 pr-10 py-3 rounded-xl border border-muted-slate/20 focus:outline-none focus:border-hyper-blue focus:ring-1 focus:ring-hyper-blue transition-all"
+              autoFocus
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-slate hover:text-pure-white transition-colors cursor-pointer"
+                title="Clear search"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {/* Prompt / Instructions */}
+          <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-slate p-4">
+            <div className="text-4xl mb-3">🔍</div>
+            <p className="text-xs font-semibold text-pure-white/80">Search any news headline...</p>            
+            <button
+              onClick={() => setIsMobileSearchOpen(false)}
+              className="mt-6 px-6 py-2 bg-hyper-blue text-pure-white font-bold rounded-lg text-xs tracking-wider uppercase transition-transform active:scale-95 cursor-pointer"
+            >
+              View Results
+            </button>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

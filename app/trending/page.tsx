@@ -4,8 +4,13 @@ import FeedViewport from '../../components/feed/FeedViewport';
 import { createClient } from '../../utils/supabase/server';
 import { getTrendingFeed } from '../actions';
 import { Article } from '@/types/supabase';
+import { searchArticles } from '../../utils/search';
 
-export default async function TrendingPage() {
+interface TrendingPageProps {
+  searchParams: Promise<{ search?: string }>;
+}
+
+export default async function TrendingPage({ searchParams }: TrendingPageProps) {
   const supabase = await createClient();
   let initialUser = null;
 
@@ -16,9 +21,15 @@ export default async function TrendingPage() {
     console.error('Error fetching session in TrendingPage:', err);
   }
 
+  const parsedParams = await searchParams;
+  const searchQuery = parsedParams.search;
+
   let articles: Article[] = [];
   try {
-    articles = await getTrendingFeed();
+    articles = await getTrendingFeed(searchQuery);
+    if (searchQuery) {
+      articles = searchArticles(articles, searchQuery);
+    }
   } catch (feedErr) {
     console.error('Failed to load trending feed data:', feedErr);
   }

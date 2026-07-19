@@ -4,8 +4,13 @@ import FeedViewport from '../../components/feed/FeedViewport';
 import { createClient } from '../../utils/supabase/server';
 import { getLatestFeed } from '../actions';
 import { Article } from '@/types/supabase';
+import { searchArticles } from '../../utils/search';
 
-export default async function LatestPage() {
+interface LatestPageProps {
+  searchParams: Promise<{ search?: string }>;
+}
+
+export default async function LatestPage({ searchParams }: LatestPageProps) {
   const supabase = await createClient();
   let initialUser = null;
 
@@ -16,9 +21,15 @@ export default async function LatestPage() {
     console.error('Error fetching session in LatestPage:', err);
   }
 
+  const parsedParams = await searchParams;
+  const searchQuery = parsedParams.search;
+
   let articles: Article[] = [];
   try {
-    articles = await getLatestFeed();
+    articles = await getLatestFeed(searchQuery);
+    if (searchQuery) {
+      articles = searchArticles(articles, searchQuery);
+    }
   } catch (feedErr) {
     console.error('Failed to load latest feed data:', feedErr);
   }

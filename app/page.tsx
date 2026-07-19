@@ -4,9 +4,10 @@ import FeedViewport from '../components/feed/FeedViewport';
 import { createClient } from '../utils/supabase/server';
 import { getFeed, getPersonalizedFeed } from './actions';
 import { Article } from '@/types/supabase';
+import { searchArticles } from '@/utils/search';
 
 interface HomeProps {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; search?: string }>;
 }
 
 export default async function Home({ searchParams }: HomeProps) {
@@ -22,15 +23,20 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const parsedParams = await searchParams;
   const selectedCategory = parsedParams.category;
+  const searchQuery = parsedParams.search;
 
   // Determine feed sorting and fetching logic
   let articles: Article[] = [];
   try {
     if (initialUser && (!selectedCategory || selectedCategory === 'for_you')) {
-      articles = await getPersonalizedFeed(initialUser.id);
+      articles = await getPersonalizedFeed(initialUser.id, searchQuery);
     } else {
       const categoryParam = selectedCategory === 'all' || !selectedCategory ? 'all' : selectedCategory;
-      articles = await getFeed(categoryParam);
+      articles = await getFeed(categoryParam, searchQuery);
+    }
+
+    if (searchQuery) {
+      articles = searchArticles(articles, searchQuery);
     }
   } catch (feedErr) {
     console.error('Failed to load feed data:', feedErr);

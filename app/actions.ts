@@ -12,13 +12,20 @@ import { Article, CategoryRatings } from '@/types/supabase';
  * @param category The category filter ('all' or a specific category string)
  * @returns Sorted array of articles
  */
-export async function getFeed(category: string | 'all'): Promise<Article[]> {
+export async function getFeed(category: string | 'all', searchQuery?: string): Promise<Article[]> {
   const supabase = await createClient();
 
   let query = supabase.from('articles').select('*');
 
   if (category && category !== 'all') {
     query = query.eq('category', category);
+  }
+
+  if (searchQuery && searchQuery.trim()) {
+    const cleanQuery = searchQuery.trim().toLowerCase();
+    const alternateTerm = cleanQuery.endsWith('s') ? cleanQuery.slice(0, -1) : (cleanQuery + 's');
+    const orFilter = `title.ilike.%${cleanQuery}%,description.ilike.%${cleanQuery}%,category.ilike.%${cleanQuery}%,subcategory.ilike.%${cleanQuery}%,title.ilike.%${alternateTerm}%,description.ilike.%${alternateTerm}%,category.ilike.%${alternateTerm}%,subcategory.ilike.%${alternateTerm}%`;
+    query = query.or(orFilter);
   }
 
   const { data: articles, error } = await query;
@@ -69,7 +76,7 @@ export async function getFeed(category: string | 'all'): Promise<Article[]> {
  * @param userId The user's Supabase auth ID
  * @returns Array of sorted, personalized articles
  */
-export async function getPersonalizedFeed(userId: string): Promise<Article[]> {
+export async function getPersonalizedFeed(userId: string, searchQuery?: string): Promise<Article[]> {
   const supabase = await createClient();
 
   // 1. Fetch user's seen articles to filter out
@@ -112,6 +119,13 @@ export async function getPersonalizedFeed(userId: string): Promise<Article[]> {
     query = query.not('id', 'in', `(${seenIds.join(',')})`);
   }
 
+  if (searchQuery && searchQuery.trim()) {
+    const cleanQuery = searchQuery.trim().toLowerCase();
+    const alternateTerm = cleanQuery.endsWith('s') ? cleanQuery.slice(0, -1) : (cleanQuery + 's');
+    const orFilter = `title.ilike.%${cleanQuery}%,description.ilike.%${cleanQuery}%,category.ilike.%${cleanQuery}%,subcategory.ilike.%${cleanQuery}%,title.ilike.%${alternateTerm}%,description.ilike.%${alternateTerm}%,category.ilike.%${alternateTerm}%,subcategory.ilike.%${alternateTerm}%`;
+    query = query.or(orFilter);
+  }
+
   const { data: articles, error: articlesError } = await query;
 
   if (articlesError) {
@@ -121,7 +135,7 @@ export async function getPersonalizedFeed(userId: string): Promise<Article[]> {
 
   // Fallback if the personalized pool runs dry
   if (!articles || articles.length === 0) {
-    const feed = await getFeed('all');
+    const feed = await getFeed('all', searchQuery);
     if (seenIds.length > 0) {
       return feed.filter((article) => !seenIds.includes(article.id));
     }
@@ -306,13 +320,19 @@ export async function markAsSeen(articleId: string): Promise<{ success: boolean 
  *
  * @returns Pure chronological array of articles
  */
-export async function getLatestFeed(): Promise<Article[]> {
+export async function getLatestFeed(searchQuery?: string): Promise<Article[]> {
   const supabase = await createClient();
 
-  const { data: articles, error } = await supabase
-    .from('articles')
-    .select('*')
-    .order('created_at', { ascending: false });
+  let query = supabase.from('articles').select('*');
+
+  if (searchQuery && searchQuery.trim()) {
+    const cleanQuery = searchQuery.trim().toLowerCase();
+    const alternateTerm = cleanQuery.endsWith('s') ? cleanQuery.slice(0, -1) : (cleanQuery + 's');
+    const orFilter = `title.ilike.%${cleanQuery}%,description.ilike.%${cleanQuery}%,category.ilike.%${cleanQuery}%,subcategory.ilike.%${cleanQuery}%,title.ilike.%${alternateTerm}%,description.ilike.%${alternateTerm}%,category.ilike.%${alternateTerm}%,subcategory.ilike.%${alternateTerm}%`;
+    query = query.or(orFilter);
+  }
+
+  const { data: articles, error } = await query.order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching articles in getLatestFeed:', error);
@@ -327,8 +347,8 @@ export async function getLatestFeed(): Promise<Article[]> {
  *
  * @returns Trending feed articles
  */
-export async function getTrendingFeed(): Promise<Article[]> {
-  return getFeed('all');
+export async function getTrendingFeed(searchQuery?: string): Promise<Article[]> {
+  return getFeed('all', searchQuery);
 }
 
 

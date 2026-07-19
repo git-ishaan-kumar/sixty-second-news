@@ -248,12 +248,15 @@ export default function CategoryBar({ initialUser = null }: CategoryBarProps) {
   const activeCategory = pathname === '/latest' ? 'latest' : (searchParams.get('category') || defaultCategory);
 
   const selectCategory = (categoryId: string) => {
+    const currentSearch = searchParams.get('search') || '';
+    const searchPart = currentSearch ? `&search=${encodeURIComponent(currentSearch)}` : '';
+
     if (categoryId === 'latest') {
-      router.push('/latest');
+      router.push(`/latest${searchPart ? '?' + searchPart.slice(1) : ''}`);
     } else if (categoryId === defaultCategory) {
-      router.push('/');
+      router.push(searchPart ? `/?${searchPart.slice(1)}` : '/');
     } else {
-      router.push(`/?category=${categoryId}`);
+      router.push(`/?category=${categoryId}${searchPart}`);
     }
   };
 
