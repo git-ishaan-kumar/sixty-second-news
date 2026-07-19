@@ -183,6 +183,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
   const [loading, setLoading] = useState(!initialUser);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
+  const [showFreshHeadlines, setShowFreshHeadlines] = useState(false);
   
   // Install App PWA States
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -294,10 +295,18 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
       return `${formattedMin}:${formattedSec}`;
     };
 
-    setTimeLeft(calculateTimeLeft());
+    const newTime = calculateTimeLeft();
+    setTimeLeft(newTime);
+    if (newTime === '00:00') {
+      setShowFreshHeadlines(true);
+    }
 
     const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
+      const t = calculateTimeLeft();
+      setTimeLeft(t);
+      if (t === '00:00') {
+        setShowFreshHeadlines(true);
+      }
     }, 1000);
 
     return () => clearInterval(timer);
@@ -675,6 +684,37 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
               View Results
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Fresh Headlines Toast Notification */}
+      {showFreshHeadlines && (
+        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 w-[calc(100vw-32px)] md:w-auto min-w-[280px] max-w-sm bg-[#16161A] border border-[#2F80ED]/50 rounded-xl p-4 sm:pr-11 shadow-2xl z-[99999] flex flex-col sm:flex-row items-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-300 font-tiktok-sans">
+          
+          <button
+            onClick={() => setShowFreshHeadlines(false)}
+            className="absolute top-2 right-2 sm:top-1/2 sm:-translate-y-1/2 sm:right-3 text-[#9CA3AF] hover:text-[#FFFFFF] transition-colors p-1"
+            aria-label="Dismiss"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          <p className="text-[#FFFFFF] text-sm font-medium flex-1 pt-1 sm:pt-0 pl-1 pr-6 sm:pr-0">
+            New headlines have arrived.
+          </p>
+
+          <button
+            onClick={() => {
+              setShowFreshHeadlines(false);
+              handleNav('/latest');
+            }}
+            className="w-full sm:w-auto shrink-0 bg-[#2F80ED] hover:bg-blue-600 text-[#FFFFFF] text-xs font-bold py-2 px-4 rounded-lg transition-colors shadow-md"
+          >
+            View Latest
+          </button>
         </div>
       )}
     </aside>
