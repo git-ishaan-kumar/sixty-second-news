@@ -184,6 +184,19 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
   const [showFreshHeadlines, setShowFreshHeadlines] = useState(false);
+  const [isToastExiting, setIsToastExiting] = useState(false);
+
+  const handleDismissToast = (onComplete?: () => void) => {
+    if (isToastExiting) return;
+    setIsToastExiting(true);
+    setTimeout(() => {
+      setShowFreshHeadlines(false);
+      setIsToastExiting(false);
+      if (onComplete) {
+        onComplete();
+      }
+    }, 400);
+  };
   
   // Install App PWA States
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -298,17 +311,17 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
     const newTime = calculateTimeLeft();
     setTimeLeft(newTime);
     
-    // Check initially if it's exactly 59:00
-    if (newTime === '59:00') {
+    // Check initially if it's exactly 00:00
+    if (newTime === '00:00') {
       setShowFreshHeadlines(true);
     }
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         const t = calculateTimeLeft();
-        // Trigger notification 1 minute after the hour (when countdown reaches 59:00)
-        // Check prev to ensure it only fires once
-        if (t === '59:00' && prev !== '59:00') {
+        // Trigger notification precisely when countdown reaches 00:00
+        // Check prev to ensure it only fires once per hourly cycle
+        if (t === '00:00' && prev !== '00:00') {
           setShowFreshHeadlines(true);
         }
         return t;
@@ -694,12 +707,12 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
       )}
 
       {/* Fresh Headlines Toast Notification */}
-      {showFreshHeadlines && (
-        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 w-[calc(100vw-32px)] md:w-auto min-w-[280px] max-w-sm bg-[#16161A] border border-[#2F80ED]/50 rounded-xl p-4 sm:pr-11 shadow-2xl z-[99999] flex flex-col sm:flex-row items-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-300 font-tiktok-sans">
+      {(showFreshHeadlines || isToastExiting) && (
+        <div className={`fixed bottom-4 right-4 md:bottom-auto md:top-6 md:right-6 w-[calc(100vw-32px)] md:w-auto min-w-[280px] max-w-sm bg-[#16161A] border border-[#2F80ED]/50 rounded-xl p-4 sm:pr-11 shadow-2xl z-[99999] flex flex-col sm:flex-row items-center gap-4 font-tiktok-sans ${isToastExiting ? 'toast-animate-exit' : 'toast-animate-enter'}`}>
           
           <button
-            onClick={() => setShowFreshHeadlines(false)}
-            className="absolute top-2 right-2 sm:top-1/2 sm:-translate-y-1/2 sm:right-3 text-[#9CA3AF] hover:text-[#FFFFFF] transition-colors p-1"
+            onClick={() => handleDismissToast()}
+            className="absolute top-2 right-2 sm:top-1/2 sm:-translate-y-1/2 sm:right-3 text-[#9CA3AF] hover:text-[#FFFFFF] transition-colors p-1 cursor-pointer"
             aria-label="Dismiss"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -714,10 +727,9 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
 
           <button
             onClick={() => {
-              setShowFreshHeadlines(false);
-              handleNav('/latest');
+              handleDismissToast(() => handleNav('/latest'));
             }}
-            className="w-full sm:w-auto shrink-0 bg-[#2F80ED] hover:bg-blue-600 text-[#FFFFFF] text-xs font-bold py-2 px-4 rounded-lg transition-colors shadow-md"
+            className="w-full sm:w-auto shrink-0 bg-[#2F80ED] hover:bg-blue-600 text-[#FFFFFF] text-xs font-bold py-2 px-4 rounded-lg transition-colors shadow-md cursor-pointer"
           >
             View Latest
           </button>
