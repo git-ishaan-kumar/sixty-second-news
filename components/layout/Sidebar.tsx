@@ -425,7 +425,10 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
       {/* Top Group: Brand Header and Navigation Links */}
       <div className="flex flex-col gap-2 w-full">
         {/* Brand Header */}
-        <div className="flex flex-col md:flex-row items-center gap-2 px-1 py-2 mb-6 select-none">
+        <button
+          onClick={() => handleNav('/')}
+          className="flex flex-col md:flex-row items-center gap-2 px-1 py-2 mb-6 select-none cursor-pointer hover:opacity-80 transition-opacity text-left w-full md:w-auto"
+        >
           <img
             src="/icon.svg"
             alt="Sixty Second News Logo"
@@ -434,7 +437,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
           <span className="hidden md:inline text-base font-bold tracking-tight text-pure-white leading-normal">
             Sixty Second News
           </span>
-        </div>
+        </button>
 
         {/* Primary Navigation Section */}
         <nav className="flex flex-col gap-2 w-full">
