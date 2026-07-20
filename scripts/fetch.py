@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+from typing import Literal
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 from google import genai
@@ -19,7 +20,7 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 # Setup Gemini API
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# Define Canonical Subcategory Taxonomy
+# Define Canonical Subcategory Taxonomy (as per IPTC)
 CANONICAL_TAXONOMY = {
     "arts_culture_entertainment": [
         "animation", "architecture", "art_exhibitions_and_museums", "cinema_and_movies",
@@ -72,11 +73,50 @@ CANONICAL_TAXONOMY = {
     ]
 }
 
+# Define Strict Canonical Subcategory Type for Schema Enforcement
+ALL_CANONICAL_SUBCATEGORIES = Literal[
+    "animation", "architecture", "art_exhibitions_and_museums", "cinema_and_movies",
+    "dance_and_ballet", "fashion_and_design", "festivals_and_events", "literature_and_publishing",
+    "music_and_audio", "news_and_mass_media", "social_media_and_influencers", "television_and_streaming",
+    "theater_and_performing_arts", "visual_arts_and_photography",
+    "civil_and_administrative_law", "corporate_and_financial_crime", "corruption_and_bribery",
+    "courts_and_judiciary", "cyber_crime", "drug_trafficking_and_crimes", "homicide_and_violent_crime",
+    "human_trafficking_and_smuggling", "international_law_and_tribunals", "investigations_and_arrests",
+    "law_enforcement_and_police", "organized_crime_and_gangs", "robbery_theft_and_fraud",
+    "supreme_and_appellate_courts", "terrorism_and_war_crimes",
+    "advertising_and_marketing", "aerospace_and_defense", "agriculture_and_forestry",
+    "automotive_and_manufacturing", "banking_and_financial_services", "central_banks_and_monetary_policy",
+    "commodities_and_raw_materials", "construction_and_real_estate", "consumer_goods_and_retail",
+    "cryptocurrency_and_fintech", "energy_oil_and_gas", "healthcare_and_pharmaceuticals",
+    "inflation_and_macroeconomics", "mergers_acquisitions_and_buyouts", "renewable_energy_and_utilities",
+    "startups_and_venture_capital", "stocks_bonds_and_securities", "technology_hardware_and_chips",
+    "telecommunications_and_wireless", "transportation_and_logistics",
+    "air_and_water_pollution", "animals_and_wildlife", "climate_change_and_global_warming",
+    "conservation_and_nature_preserves", "ecosystems_and_biodiversity", "endangered_and_invasive_species",
+    "forests_and_deforestation", "hazardous_and_waste_materials", "oceans_rivers_and_marine_life",
+    "sustainability_and_green_policy",
+    "armed_forces_and_military", "campaign_finance_and_lobbying", "diplomacy_and_international_relations",
+    "elections_and_voting", "espionage_and_national_security", "foreign_aid_and_sanctions",
+    "government_budget_and_taxation", "immigration_and_border_policy", "legislation_and_parliaments",
+    "local_and_state_government", "political_parties_and_candidates", "public_health_and_social_policy",
+    "referendums_and_civic_initiatives", "refugees_and_humanitarian_crises",
+    "aerospace_and_rocketry", "agricultural_and_food_tech", "artificial_intelligence",
+    "astronomy_and_space_exploration", "biotechnology_and_genetics", "chemistry_and_materials_science",
+    "computer_science_and_software", "electronic_engineering_and_chips", "geology_and_earth_sciences",
+    "marine_and_ocean_sciences", "mathematics_and_physics", "medical_research_and_neuroscience",
+    "robotics_and_automation", "social_sciences_and_psychology",
+    "american_football", "athletics_track_and_field", "auto_racing_and_motorsports", "baseball",
+    "basketball", "combat_sports_and_martial_arts", "cricket", "cycling", "equestrian_and_horse_racing",
+    "esports_and_gaming", "field_hockey_and_lacrosse", "golf", "gymnastics", "ice_hockey",
+    "olympics_and_paralympics", "rugby", "sailing_and_water_sports", "skiing_and_winter_sports",
+    "soccer", "swimming_and_diving", "tennis_and_racket_sports", "volleyball"
+]
+
 # Define Pydantic Schema
 class CherryPickedItem(BaseModel):
     index: int
     category: str
-    subcategory: str
+    subcategory: ALL_CANONICAL_SUBCATEGORIES
     entities: list[str]
     interest_score: int
     title: str
