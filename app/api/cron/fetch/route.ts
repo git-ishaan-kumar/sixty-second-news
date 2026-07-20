@@ -120,6 +120,58 @@ const CATEGORY_WHITELISTS: Record<NewsCategory, string[]> = {
   ],
 };
 
+const CANONICAL_TAXONOMY: Record<NewsCategory, string[]> = {
+  arts_culture_entertainment: [
+    "animation", "architecture", "art_exhibitions_and_museums", "cinema_and_movies",
+    "dance_and_ballet", "fashion_and_design", "festivals_and_events", "literature_and_publishing",
+    "music_and_audio", "news_and_mass_media", "social_media_and_influencers", "television_and_streaming",
+    "theater_and_performing_arts", "visual_arts_and_photography"
+  ],
+  crime_law_justice: [
+    "civil_and_administrative_law", "corporate_and_financial_crime", "corruption_and_bribery",
+    "courts_and_judiciary", "cyber_crime", "drug_trafficking_and_crimes", "homicide_and_violent_crime",
+    "human_trafficking_and_smuggling", "international_law_and_tribunals", "investigations_and_arrests",
+    "law_enforcement_and_police", "organized_crime_and_gangs", "robbery_theft_and_fraud",
+    "supreme_and_appellate_courts", "terrorism_and_war_crimes"
+  ],
+  economy_business_finance: [
+    "advertising_and_marketing", "aerospace_and_defense", "agriculture_and_forestry",
+    "automotive_and_manufacturing", "banking_and_financial_services", "central_banks_and_monetary_policy",
+    "commodities_and_raw_materials", "construction_and_real_estate", "consumer_goods_and_retail",
+    "cryptocurrency_and_fintech", "energy_oil_and_gas", "healthcare_and_pharmaceuticals",
+    "inflation_and_macroeconomics", "mergers_acquisitions_and_buyouts", "renewable_energy_and_utilities",
+    "startups_and_venture_capital", "stocks_bonds_and_securities", "technology_hardware_and_chips",
+    "telecommunications_and_wireless", "transportation_and_logistics"
+  ],
+  environment: [
+    "air_and_water_pollution", "animals_and_wildlife", "climate_change_and_global_warming",
+    "conservation_and_nature_preserves", "ecosystems_and_biodiversity", "endangered_and_invasive_species",
+    "forests_and_deforestation", "hazardous_and_waste_materials", "oceans_rivers_and_marine_life",
+    "sustainability_and_green_policy"
+  ],
+  politics_government: [
+    "armed_forces_and_military", "campaign_finance_and_lobbying", "diplomacy_and_international_relations",
+    "elections_and_voting", "espionage_and_national_security", "foreign_aid_and_sanctions",
+    "government_budget_and_taxation", "immigration_and_border_policy", "legislation_and_parliaments",
+    "local_and_state_government", "political_parties_and_candidates", "public_health_and_social_policy",
+    "referendums_and_civic_initiatives", "refugees_and_humanitarian_crises"
+  ],
+  science_technology: [
+    "aerospace_and_rocketry", "agricultural_and_food_tech", "artificial_intelligence",
+    "astronomy_and_space_exploration", "biotechnology_and_genetics", "chemistry_and_materials_science",
+    "computer_science_and_software", "electronic_engineering_and_chips", "geology_and_earth_sciences",
+    "marine_and_ocean_sciences", "mathematics_and_physics", "medical_research_and_neuroscience",
+    "robotics_and_automation", "social_sciences_and_psychology"
+  ],
+  sport: [
+    "american_football", "athletics_track_and_field", "auto_racing_and_motorsports", "baseball",
+    "basketball", "combat_sports_and_martial_arts", "cricket", "cycling", "equestrian_and_horse_racing",
+    "esports_and_gaming", "field_hockey_and_lacrosse", "golf", "gymnastics", "ice_hockey",
+    "olympics_and_paralympics", "rugby", "sailing_and_water_sports", "skiing_and_winter_sports",
+    "soccer", "swimming_and_diving", "tennis_and_racket_sports", "volleyball"
+  ]
+};
+
 interface CurrentsArticle {
   id: string;
   title: string;
@@ -137,6 +189,7 @@ interface GeminiSelectionItem {
   index: number;
   category: string;
   subcategory: string;
+  entities: string[];
   interest_score: number;
   title: string;
   description: string;
@@ -241,6 +294,8 @@ export async function GET(request: Request) {
       globalSelectionPrompt += `Index: ${i} | Raw Title: ${article.title} - Article Body Text: ${articleText}\n`;
     });
 
+    const formattedTaxonomyInstructions = JSON.stringify(CANONICAL_TAXONOMY, null, 2);
+
     // 5. Query Gemini API
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
     const geminiPayload = {
@@ -263,8 +318,10 @@ For each item you choose, you must completely rewrite the text fields to match p
 1. 'title': Rewrite into a snappy, front-loaded, high-engagement headline under 80 characters. Use strict, standard Title Case. Never pass raw or lazy titles.
 2. 'description': EXTRACT HARD FACT SUMMARY. Completely ignore lazy teaser strings or clickbait hooks like 'we uncover this in our article'. Read the entire provided Article Body Text and synthesize its primary factual outcome into a single, comprehensive sentence case summary hook that delivers hard news values.
 3. 'category': Classify into one of these strict lowercase strings: politics_government, economy_business_finance, science_technology, sport, arts_culture_entertainment, crime_law_justice, environment.
-4. 'subcategory': Define a sharp single-word lowercase or snake_case noun classification.
-5. 'interest_score': Assign an engagement value from 1 to 100 based entirely on how shocking or engaging the story is.
+4. 'subcategory': STRICT CANONICAL TAXONOMY MANDATE. You MUST select ONE exact subcategory string matching the item's category from this dictionary:
+${formattedTaxonomyInstructions}
+5. 'entities': Extract 3 to 6 key searchable entity keywords/phrases (people, teams, companies, locations, events, key terms) mentioned in or strictly relevant to the article so users can search for them in the search bar.
+6. 'interest_score': Assign an engagement value from 1 to 100 based entirely on how shocking or engaging the story is.
 
 STRICT CONSTRAINT RULES:
 - Max 3 items assigned to any single category string.
@@ -285,11 +342,15 @@ STRICT CONSTRAINT RULES:
                   index: { type: 'INTEGER' },
                   category: { type: 'STRING' },
                   subcategory: { type: 'STRING' },
+                  entities: {
+                    type: 'ARRAY',
+                    items: { type: 'STRING' },
+                  },
                   interest_score: { type: 'INTEGER' },
                   title: { type: 'STRING' },
                   description: { type: 'STRING' },
                 },
-                required: ['index', 'category', 'subcategory', 'interest_score', 'title', 'description'],
+                required: ['index', 'category', 'subcategory', 'entities', 'interest_score', 'title', 'description'],
               },
             },
           },
@@ -351,6 +412,7 @@ STRICT CONSTRAINT RULES:
       articlesToUpsert.push({
         category: aiCategory,
         subcategory: item.subcategory,
+        entities: item.entities || [],
         interest_score: item.interest_score,
         title: item.title,
         description: item.description,

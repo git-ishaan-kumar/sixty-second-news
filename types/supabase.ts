@@ -30,6 +30,7 @@ export interface Article {
   id: string; // uuid
   category: NewsCategory;
   subcategory: string;
+  entities?: string[] | null;
   interest_score: number;
   title: string;
   description: string;

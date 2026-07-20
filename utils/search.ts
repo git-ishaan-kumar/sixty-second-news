@@ -68,8 +68,9 @@ export function searchArticles(articles: Article[], query: string): Article[] {
 
   return articles.filter((article) => {
     // Combine text fields from article to search within
+    const entitiesStr = Array.isArray(article.entities) ? article.entities.join(" ") : "";
     const textToSearch = cleanString(
-      `${article.title} ${article.description} ${article.category || ""} ${article.subcategory || ""}`
+      `${article.title} ${article.description} ${article.category || ""} ${article.subcategory || ""} ${entitiesStr}`
     );
     const targetTokens = textToSearch.split(" ").filter(Boolean);
 
