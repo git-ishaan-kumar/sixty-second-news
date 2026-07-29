@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Article } from '@/types/supabase';
-import { mutateArticleReaction } from '@/app/actions';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import { useInteractions } from './InteractionContext';
 
 interface NewsCardProps {
   article: Article;
@@ -65,6 +65,44 @@ const ThumbsDownIcon = ({ filled }: { filled: boolean }) => (
   </svg>
 );
 
+// SVG External Link Icon
+const ExternalLinkIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="w-5 h-5 transition-transform duration-300"
+  >
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    <polyline points="15 3 21 3 21 9" />
+    <line x1="10" y1="14" x2="21" y2="3" />
+  </svg>
+);
+
+// SVG Share Icon
+const ShareIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="w-5 h-5 transition-transform duration-300"
+  >
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+  </svg>
+);
+
 export default function NewsCard({ article, onReact }: NewsCardProps) {
   const { title, description, image, category, subcategory, source_url, published_at, likes, dislikes } = article;
 
@@ -88,11 +126,40 @@ export default function NewsCard({ article, onReact }: NewsCardProps) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Local state for optimistic UI updates
-  const [hasLiked, setHasLiked] = useState(false);
-  const [hasDisliked, setHasDisliked] = useState(false);
-  const [likeCount, setLikeCount] = useState(likes);
-  const [dislikeCount, setDislikeCount] = useState(dislikes);
+  const { likedArticleIds, dislikedArticleIds, articleLikes, articleDislikes, toggleLike, toggleDislike } = useInteractions();
+
+  const hasLiked = likedArticleIds.has(article.id);
+  const hasDisliked = dislikedArticleIds.has(article.id);
+  const likeCount = articleLikes[article.id] ?? likes;
+  const dislikeCount = articleDislikes[article.id] ?? dislikes;
+  const [copiedToast, setCopiedToast] = useState(false);
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          text: description,
+          url: source_url,
+        });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.log('Error sharing:', err);
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(source_url);
+        setCopiedToast(true);
+        setTimeout(() => setCopiedToast(false), 2000);
+      } catch (copyErr) {
+        console.error('Failed to copy link:', copyErr);
+      }
+    }
+  };
 
   // Intercept image and check if it has a valid source or starts with PLACEHOLDER_
   const isPlaceholder = !image || image.startsWith('PLACEHOLDER_') || image === 'None';
@@ -138,145 +205,13 @@ export default function NewsCard({ article, onReact }: NewsCardProps) {
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (!userId) {
-      console.warn('Anonymous users cannot react to articles. Please log in.');
-      router.push('/login');
-      return;
-    }
-
-    // 1. Snapshot previous state for rollback on error
-    const prevHasLiked = hasLiked;
-    const prevHasDisliked = hasDisliked;
-    const prevLikeCount = likeCount;
-    const prevDislikeCount = dislikeCount;
-
-    // 2. Perform optimistic updates instantly
-    if (hasLiked) {
-      setHasLiked(false);
-      setLikeCount((prev) => Math.max(0, prev - 1));
-      if (onReact) onReact(article.id, 'unlike');
-    } else {
-      setHasLiked(true);
-      setLikeCount((prev) => prev + 1);
-      if (onReact) onReact(article.id, 'like');
-      if (hasDisliked) {
-        setHasDisliked(false);
-        setDislikeCount((prev) => Math.max(0, prev - 1));
-      }
-    }
-
-    try {
-      // 3. Dispatch mutations to the backend server action
-      if (prevHasLiked) {
-        // Was liked, now unliking
-        const result = await mutateArticleReaction(article.id, 'unlike');
-        if (result?.success) {
-          setLikeCount(result.likes);
-          setDislikeCount(result.dislikes);
-        }
-      } else {
-        // Was not liked, now liking
-        if (prevHasDisliked) {
-          // If it was disliked, undislike first to correct counts/personalization scores
-          await mutateArticleReaction(article.id, 'undislike');
-        }
-        const result = await mutateArticleReaction(article.id, 'like');
-        if (result?.success) {
-          setLikeCount(result.likes);
-          setDislikeCount(result.dislikes);
-        }
-      }
-    } catch (err) {
-      console.error('Optimistic UI rollback - Like action failed:', err);
-      // 4. Rollback to previous state on failure
-      setHasLiked(prevHasLiked);
-      setHasDisliked(prevHasDisliked);
-      setLikeCount(prevLikeCount);
-      setDislikeCount(prevDislikeCount);
-      if (onReact) {
-        if (prevHasLiked) {
-          onReact(article.id, 'like');
-        } else {
-          onReact(article.id, 'unlike');
-          if (prevHasDisliked) {
-            onReact(article.id, 'dislike');
-          }
-        }
-      }
-    }
+    await toggleLike(article.id, likes, dislikes, onReact);
   };
 
   const handleDislike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (!userId) {
-      console.warn('Anonymous users cannot react to articles. Please log in.');
-      router.push('/login');
-      return;
-    }
-
-    // 1. Snapshot previous state for rollback on error
-    const prevHasLiked = hasLiked;
-    const prevHasDisliked = hasDisliked;
-    const prevLikeCount = likeCount;
-    const prevDislikeCount = dislikeCount;
-
-    // 2. Perform optimistic updates instantly
-    if (hasDisliked) {
-      setHasDisliked(false);
-      setDislikeCount((prev) => Math.max(0, prev - 1));
-      if (onReact) onReact(article.id, 'undislike');
-    } else {
-      setHasDisliked(true);
-      setDislikeCount((prev) => prev + 1);
-      if (onReact) onReact(article.id, 'dislike');
-      if (hasLiked) {
-        setHasLiked(false);
-        setLikeCount((prev) => Math.max(0, prev - 1));
-      }
-    }
-
-    try {
-      // 3. Dispatch mutations to the backend server action
-      if (prevHasDisliked) {
-        // Was disliked, now undisliking
-        const result = await mutateArticleReaction(article.id, 'undislike');
-        if (result?.success) {
-          setLikeCount(result.likes);
-          setDislikeCount(result.dislikes);
-        }
-      } else {
-        // Was not disliked, now disliking
-        if (prevHasLiked) {
-          // If it was liked, unlike first to correct counts/personalization scores
-          await mutateArticleReaction(article.id, 'unlike');
-        }
-        const result = await mutateArticleReaction(article.id, 'dislike');
-        if (result?.success) {
-          setLikeCount(result.likes);
-          setDislikeCount(result.dislikes);
-        }
-      }
-    } catch (err) {
-      console.error('Optimistic UI rollback - Dislike action failed:', err);
-      // 4. Rollback to previous state on failure
-      setHasLiked(prevHasLiked);
-      setHasDisliked(prevHasDisliked);
-      setLikeCount(prevLikeCount);
-      setDislikeCount(prevDislikeCount);
-      if (onReact) {
-        if (prevHasDisliked) {
-          onReact(article.id, 'dislike');
-        } else {
-          onReact(article.id, 'undislike');
-          if (prevHasLiked) {
-            onReact(article.id, 'like');
-          }
-        }
-      }
-    }
+    await toggleDislike(article.id, likes, dislikes, onReact);
   };
 
   return (
@@ -342,7 +277,7 @@ export default function NewsCard({ article, onReact }: NewsCardProps) {
       </a>
 
       {/* Floating Interaction Buttons Layer (positioned on the right edge, z-30 overlays card) */}
-      <div className="absolute right-4 md:right-6 bottom-24 md:bottom-28 z-30 flex flex-col items-center gap-5">
+      <div className="absolute right-4 md:right-6 bottom-20 md:bottom-24 z-30 flex flex-col items-center gap-4">
         {/* Like (Thumbs Up) Button */}
         <div className="flex flex-col items-center gap-1">
           <button
@@ -376,6 +311,46 @@ export default function NewsCard({ article, onReact }: NewsCardProps) {
           </button>
           <span className="font-montserrat text-xs font-bold text-pure-white/90 drop-shadow-md select-none">
             {dislikeCount}
+          </span>
+        </div>
+
+        {/* Web Share API Button */}
+        <div className="flex flex-col items-center gap-1 relative">
+          <button
+            onClick={handleShare}
+            title="Share Article"
+            aria-label="Share this article"
+            className="w-12 h-12 rounded-full flex items-center justify-center border border-white/10 bg-black/40 text-pure-white hover:bg-black/60 hover:border-white/25 hover:scale-105 transition-all duration-300 shadow-lg cursor-pointer backdrop-blur-md"
+          >
+            <ShareIcon />
+          </button>
+          <span className="font-montserrat text-[10px] font-bold text-pure-white/90 drop-shadow-md select-none uppercase tracking-wider">
+            Share
+          </span>
+
+          {/* Copy Toast Notification */}
+          {copiedToast && (
+            <div className="absolute right-14 top-1/2 -translate-y-1/2 whitespace-nowrap bg-hyper-blue text-pure-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-xl animate-in fade-in slide-in-from-right-2 duration-200 pointer-events-none z-50">
+              Link copied!
+            </div>
+          )}
+        </div>
+
+        {/* Visit External Source Button */}
+        <div className="flex flex-col items-center gap-1">
+          <a
+            href={source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title="Visit Source"
+            aria-label="Visit article source"
+            className="w-12 h-12 rounded-full flex items-center justify-center border border-white/10 bg-black/40 text-pure-white hover:bg-black/60 hover:border-white/25 hover:scale-105 transition-all duration-300 shadow-lg cursor-pointer backdrop-blur-md"
+          >
+            <ExternalLinkIcon />
+          </a>
+          <span className="font-montserrat text-[10px] font-bold text-pure-white/90 drop-shadow-md select-none uppercase tracking-wider">
+            Source
           </span>
         </div>
       </div>

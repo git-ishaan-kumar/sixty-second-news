@@ -23,6 +23,8 @@ export const metadata: Metadata = {
 
 import { createClient } from "../utils/supabase/server";
 
+import { InteractionProvider } from "../components/feed/InteractionContext";
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -59,7 +61,9 @@ export default async function RootLayout({
           <Sidebar initialUser={initialUser} initialProfile={initialProfile} />
         </Suspense>
         <main className="flex-1 flex flex-col min-w-0">
-          {children}
+          <InteractionProvider>
+            {children}
+          </InteractionProvider>
         </main>
       </body>
     </html>
