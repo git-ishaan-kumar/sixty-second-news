@@ -15,7 +15,24 @@ import { Article, CategoryRatings } from '@/types/supabase';
 export async function getFeed(category: string | 'all', searchQuery?: string): Promise<Article[]> {
   const supabase = await createClient();
 
+  // Fetch current user session to filter out disliked articles
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+
   let query = supabase.from('articles').select('*');
+
+  if (userId) {
+    const { data: dislikedRecords } = await supabase
+      .from('user_interactions')
+      .select('article_id')
+      .eq('user_id', userId)
+      .eq('reaction', 'dislike');
+
+    const dislikedIds = dislikedRecords?.map((r) => r.article_id) || [];
+    if (dislikedIds.length > 0) {
+      query = query.not('id', 'in', `(${dislikedIds.join(',')})`);
+    }
+  }
 
   if (category && category !== 'all') {
     query = query.eq('category', category);
@@ -91,6 +108,21 @@ export async function getPersonalizedFeed(userId: string, searchQuery?: string):
 
   const seenIds = seenRecords?.map((r) => r.article_id) || [];
 
+  // 1b. Fetch user's disliked articles to filter out
+  const { data: dislikedRecords, error: dislikedError } = await supabase
+    .from('user_interactions')
+    .select('article_id')
+    .eq('user_id', userId)
+    .eq('reaction', 'dislike');
+
+  if (dislikedError) {
+    console.error('Error fetching disliked articles:', dislikedError);
+  }
+
+  const dislikedIds = dislikedRecords?.map((r) => r.article_id) || [];
+
+  const excludeIds = Array.from(new Set([...seenIds, ...dislikedIds]));
+
   // 2. Fetch the user's profile and subcategory/entity ratings
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
@@ -104,11 +136,11 @@ export async function getPersonalizedFeed(userId: string, searchQuery?: string):
 
   const ratings: CategoryRatings = profile?.category_ratings || {};
 
-  // 3. Fetch recent articles (filtering out seen ones if any exist)
+  // 3. Fetch recent articles (filtering out seen and disliked ones if any exist)
   let query = supabase.from('articles').select('*');
 
-  if (seenIds.length > 0) {
-    query = query.not('id', 'in', `(${seenIds.join(',')})`);
+  if (excludeIds.length > 0) {
+    query = query.not('id', 'in', `(${excludeIds.join(',')})`);
   }
 
   if (searchQuery && searchQuery.trim()) {
@@ -128,8 +160,8 @@ export async function getPersonalizedFeed(userId: string, searchQuery?: string):
   // Fallback if the personalized pool runs dry
   if (!articles || articles.length === 0) {
     const feed = await getFeed('all', searchQuery);
-    if (seenIds.length > 0) {
-      return feed.filter((article) => !seenIds.includes(article.id));
+    if (excludeIds.length > 0) {
+      return feed.filter((article) => !excludeIds.includes(article.id));
     }
     return feed;
   }
@@ -251,6 +283,42 @@ export async function getPersonalizedFeed(userId: string, searchQuery?: string):
  * @param articleId The ID of the article being liked/disliked
  * @param action The action type ('like' | 'unlike' | 'dislike' | 'undislike')
  */
+/**
+ * Fetches the current user's liked and disliked article IDs.
+ */
+export async function getUserReactions(): Promise<{ likedArticleIds: string[]; dislikedArticleIds: string[] }> {
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return { likedArticleIds: [], dislikedArticleIds: [] };
+  }
+
+  const { data, error } = await supabase
+    .from('user_interactions')
+    .select('article_id, reaction')
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error fetching user reactions:', error);
+    return { likedArticleIds: [], dislikedArticleIds: [] };
+  }
+
+  const likedArticleIds: string[] = [];
+  const dislikedArticleIds: string[] = [];
+
+  data.forEach((row) => {
+    if (row.reaction === 'like') {
+      likedArticleIds.push(row.article_id);
+    } else if (row.reaction === 'dislike') {
+      dislikedArticleIds.push(row.article_id);
+    }
+  });
+
+  return { likedArticleIds, dislikedArticleIds };
+}
+
 export async function mutateArticleReaction(
   articleId: string,
   action: 'like' | 'unlike' | 'dislike' | 'undislike'
@@ -315,9 +383,35 @@ export async function mutateArticleReaction(
     throw new Error('Failed to update global metrics.');
   }
 
-  // 4. Perform user-bound profiles ratings mutation if authenticated
+  // 4. Perform user-bound profiles ratings and user_interactions mutations if authenticated
   // Track weights for 'subcategory' and 'entities' instead of primary 'category'
   if (userId) {
+    // A. Update user_interactions table
+    if (action === 'like' || action === 'dislike') {
+      const { error: interactionError } = await supabase
+        .from('user_interactions')
+        .upsert({
+          user_id: userId,
+          article_id: articleId,
+          reaction: action,
+        }, { onConflict: 'user_id,article_id' });
+
+      if (interactionError) {
+        console.error('Error saving user interaction:', interactionError);
+      }
+    } else if (action === 'unlike' || action === 'undislike') {
+      const { error: interactionError } = await supabase
+        .from('user_interactions')
+        .delete()
+        .eq('user_id', userId)
+        .eq('article_id', articleId);
+
+      if (interactionError) {
+        console.error('Error deleting user interaction:', interactionError);
+      }
+    }
+
+    // B. Update profiles category ratings
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('category_ratings')
@@ -406,7 +500,24 @@ export async function markAsSeen(articleId: string): Promise<{ success: boolean 
 export async function getLatestFeed(searchQuery?: string): Promise<Article[]> {
   const supabase = await createClient();
 
+  // Fetch current user session to filter out disliked articles
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+
   let query = supabase.from('articles').select('*');
+
+  if (userId) {
+    const { data: dislikedRecords } = await supabase
+      .from('user_interactions')
+      .select('article_id')
+      .eq('user_id', userId)
+      .eq('reaction', 'dislike');
+
+    const dislikedIds = dislikedRecords?.map((r) => r.article_id) || [];
+    if (dislikedIds.length > 0) {
+      query = query.not('id', 'in', `(${dislikedIds.join(',')})`);
+    }
+  }
 
   if (searchQuery && searchQuery.trim()) {
     const cleanQuery = searchQuery.trim().toLowerCase();
