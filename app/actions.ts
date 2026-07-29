@@ -3,6 +3,24 @@
 import { createClient, createAdminClient } from '@/utils/supabase/server';
 import { Article, CategoryRatings } from '@/types/supabase';
 
+const SEARCH_ALIASES: Record<string, string> = {
+  "ai": "artificial_intelligence",
+  "ml": "computer_science_and_software",
+  "gop": "politics_government",
+  "dem": "politics_government",
+  "crypto": "cryptocurrency_and_fintech",
+  "ev": "automotive_and_manufacturing",
+  "evs": "automotive_and_manufacturing",
+  "uk": "United Kingdom",
+  "us": "United States",
+  "usa": "United States",
+  "f1": "auto_racing_and_motorsports",
+  "nfl": "american_football",
+  "nba": "basketball",
+  "epl": "soccer",
+  "premier league": "soccer"
+};
+
 /**
  * Fetches articles from the database, filters by category if provided,
  * and sorts them using an Exponential Time-Decay Gravity formula.
@@ -19,7 +37,18 @@ export async function getFeed(category: string | 'all', searchQuery?: string): P
   const { data: { session } } = await supabase.auth.getSession();
   const userId = session?.user?.id;
 
-  let query = supabase.from('articles').select('*');
+  let query;
+
+  if (searchQuery && searchQuery.trim()) {
+    const cleanQuery = searchQuery.trim().toLowerCase();
+    const normalizedQuery = SEARCH_ALIASES[cleanQuery] || cleanQuery;
+    query = supabase.rpc('search_articles_rpc', {
+      search_term: cleanQuery,
+      normalized_term: normalizedQuery,
+    });
+  } else {
+    query = supabase.from('articles').select('*');
+  }
 
   if (userId) {
     const { data: dislikedRecords } = await supabase
@@ -38,14 +67,8 @@ export async function getFeed(category: string | 'all', searchQuery?: string): P
     query = query.eq('category', category);
   }
 
-  if (searchQuery && searchQuery.trim()) {
-    const cleanQuery = searchQuery.trim().toLowerCase();
-    const alternateTerm = cleanQuery.endsWith('s') ? cleanQuery.slice(0, -1) : (cleanQuery + 's');
-    const orFilter = `title.ilike.%${cleanQuery}%,description.ilike.%${cleanQuery}%,category.ilike.%${cleanQuery}%,subcategory.ilike.%${cleanQuery}%,entities.cs.{${cleanQuery}},title.ilike.%${alternateTerm}%,description.ilike.%${alternateTerm}%,category.ilike.%${alternateTerm}%,subcategory.ilike.%${alternateTerm}%,entities.cs.{${alternateTerm}}`;
-    query = query.or(orFilter);
-  }
-
-  const { data: articles, error } = await query;
+  const { data, error } = await query;
+  const articles = (data || []) as Article[];
 
   if (error) {
     console.error('Error fetching articles in getFeed:', error);
@@ -163,20 +186,25 @@ export async function getPersonalizedFeed(userId: string, searchQuery?: string):
   const ratings: CategoryRatings = profile?.category_ratings || {};
 
   // 3. Fetch recent articles (filtering out seen and disliked ones if any exist)
-  let query = supabase.from('articles').select('*');
+  let query;
+
+  if (searchQuery && searchQuery.trim()) {
+    const cleanQuery = searchQuery.trim().toLowerCase();
+    const normalizedQuery = SEARCH_ALIASES[cleanQuery] || cleanQuery;
+    query = supabase.rpc('search_articles_rpc', {
+      search_term: cleanQuery,
+      normalized_term: normalizedQuery,
+    });
+  } else {
+    query = supabase.from('articles').select('*');
+  }
 
   if (excludeIds.length > 0) {
     query = query.not('id', 'in', `(${excludeIds.join(',')})`);
   }
 
-  if (searchQuery && searchQuery.trim()) {
-    const cleanQuery = searchQuery.trim().toLowerCase();
-    const alternateTerm = cleanQuery.endsWith('s') ? cleanQuery.slice(0, -1) : (cleanQuery + 's');
-    const orFilter = `title.ilike.%${cleanQuery}%,description.ilike.%${cleanQuery}%,category.ilike.%${cleanQuery}%,subcategory.ilike.%${cleanQuery}%,entities.cs.{${cleanQuery}},title.ilike.%${alternateTerm}%,description.ilike.%${alternateTerm}%,category.ilike.%${alternateTerm}%,subcategory.ilike.%${alternateTerm}%,entities.cs.{${alternateTerm}}`;
-    query = query.or(orFilter);
-  }
-
-  const { data: articles, error: articlesError } = await query;
+  const { data, error: articlesError } = await query;
+  const articles = (data || []) as Article[];
 
   if (articlesError) {
     console.error('Error fetching articles in getPersonalizedFeed:', articlesError);
@@ -556,7 +584,18 @@ export async function getLatestFeed(searchQuery?: string): Promise<Article[]> {
   const { data: { session } } = await supabase.auth.getSession();
   const userId = session?.user?.id;
 
-  let query = supabase.from('articles').select('*');
+  let query;
+
+  if (searchQuery && searchQuery.trim()) {
+    const cleanQuery = searchQuery.trim().toLowerCase();
+    const normalizedQuery = SEARCH_ALIASES[cleanQuery] || cleanQuery;
+    query = supabase.rpc('search_articles_rpc', {
+      search_term: cleanQuery,
+      normalized_term: normalizedQuery,
+    });
+  } else {
+    query = supabase.from('articles').select('*');
+  }
 
   if (userId) {
     const { data: dislikedRecords } = await supabase
@@ -571,14 +610,8 @@ export async function getLatestFeed(searchQuery?: string): Promise<Article[]> {
     }
   }
 
-  if (searchQuery && searchQuery.trim()) {
-    const cleanQuery = searchQuery.trim().toLowerCase();
-    const alternateTerm = cleanQuery.endsWith('s') ? cleanQuery.slice(0, -1) : (cleanQuery + 's');
-    const orFilter = `title.ilike.%${cleanQuery}%,description.ilike.%${cleanQuery}%,category.ilike.%${cleanQuery}%,subcategory.ilike.%${cleanQuery}%,entities.cs.{${cleanQuery}},title.ilike.%${alternateTerm}%,description.ilike.%${alternateTerm}%,category.ilike.%${alternateTerm}%,subcategory.ilike.%${alternateTerm}%,entities.cs.{${alternateTerm}}`;
-    query = query.or(orFilter);
-  }
-
-  const { data: articles, error } = await query.order('created_at', { ascending: false });
+  const { data, error } = await query.order('created_at', { ascending: false });
+  const articles = (data || []) as Article[];
 
   if (error) {
     console.error('Error fetching articles in getLatestFeed:', error);

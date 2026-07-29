@@ -233,7 +233,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
         }
       }
       router.push(`${window.location.pathname}?${params.toString()}`);
-    }, 200);
+    }, 300);
 
     return () => clearTimeout(delayDebounce);
   }, [searchQuery, urlSearch, router]);
