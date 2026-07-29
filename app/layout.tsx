@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   description: "Aggregating global breaking news, rewritten into engaging 60-second hooks with flippable cards.",
 };
 
-import { createClient } from "../utils/supabase/server";
+import { createClient, createAdminClient } from "../utils/supabase/server";
 
 import { InteractionProvider } from "../components/feed/InteractionContext";
 
@@ -40,11 +40,41 @@ export default async function RootLayout({
     initialUser = session?.user ?? null;
     
     if (initialUser) {
-      const { data: profileData } = await supabase
+      let { data: profileData } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', initialUser.id)
-        .single();
+        .maybeSingle();
+      
+      if (!profileData) {
+        // Create user profile row dynamically using admin client if missing
+        const adminSupabase = createAdminClient();
+        const email = initialUser.email || '';
+        const username = email.split('@')[0] || 'user';
+        const { data: newProfile, error: createError } = await adminSupabase
+          .from('profiles')
+          .insert({
+            id: initialUser.id,
+            username: username,
+            email: email,
+            category_ratings: {},
+          })
+          .select()
+          .maybeSingle();
+
+        if (createError) {
+          console.error('Failed to dynamically create profile in layout:', createError);
+          profileData = {
+            id: initialUser.id,
+            username: username,
+            email: email,
+            category_ratings: {},
+            created_at: new Date().toISOString(),
+          };
+        } else {
+          profileData = newProfile;
+        }
+      }
       initialProfile = profileData;
     }
   } catch (err) {

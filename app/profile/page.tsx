@@ -1,6 +1,6 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createAdminClient } from '@/utils/supabase/server';
 import ProfileClientShell from '@/components/profile/ProfileClientShell';
 
 export const metadata = {
@@ -19,14 +19,41 @@ export default async function ProfilePage() {
   }
 
   // Fetch user profile from the database
-  const { data: profile, error } = await supabase
+  let { data: profile, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', session.user.id)
-    .single();
+    .maybeSingle();
 
   if (error && error.code !== 'PGRST116') {
     console.error('Error fetching user profile:', error.message, `(Code: ${error.code})`);
+  }
+
+  if (!profile && !error) {
+    // Create user profile row dynamically using admin client if missing
+    try {
+      const adminSupabase = createAdminClient();
+      const email = session.user.email || '';
+      const username = email.split('@')[0] || 'user';
+      const { data: newProfile, error: createError } = await adminSupabase
+        .from('profiles')
+        .insert({
+          id: session.user.id,
+          username: username,
+          email: email,
+          category_ratings: {},
+        })
+        .select()
+        .maybeSingle();
+
+      if (createError) {
+        console.error('Failed to dynamically create profile in profile page:', createError);
+      } else {
+        profile = newProfile;
+      }
+    } catch (err) {
+      console.error('Failed to dynamically create profile in profile page:', err);
+    }
   }
 
   // Prepopulate standard profile information fallback if DB query is slow or empty

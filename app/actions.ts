@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createAdminClient } from '@/utils/supabase/server';
 import { Article, CategoryRatings } from '@/types/supabase';
 
 /**
@@ -124,14 +124,40 @@ export async function getPersonalizedFeed(userId: string, searchQuery?: string):
   const excludeIds = Array.from(new Set([...seenIds, ...dislikedIds]));
 
   // 2. Fetch the user's profile and subcategory/entity ratings
-  const { data: profile, error: profileError } = await supabase
+  let { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('category_ratings')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (profileError && profileError.code !== 'PGRST116') {
     console.error('Error fetching user profile for personalization:', profileError);
+  }
+
+  if (!profile && !profileError) {
+    // Create user profile row dynamically using admin client if missing
+    try {
+      const adminSupabase = createAdminClient();
+      const { data: userRecord } = await adminSupabase.auth.admin.getUserById(userId);
+      const email = userRecord?.user?.email || '';
+      const username = email.split('@')[0] || 'user';
+      const { data: newProfile } = await adminSupabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          username: username,
+          email: email,
+          category_ratings: {},
+        })
+        .select('category_ratings')
+        .maybeSingle();
+      
+      if (newProfile) {
+        profile = newProfile;
+      }
+    } catch (err) {
+      console.error('Failed to dynamically create profile for personalization:', err);
+    }
   }
 
   const ratings: CategoryRatings = profile?.category_ratings || {};
@@ -349,19 +375,19 @@ export async function mutateArticleReaction(
   switch (action) {
     case 'like':
       deltaLikes = 1;
-      ratingDelta = 1;
+      ratingDelta = 10; // +10 for like
       break;
     case 'unlike':
       deltaLikes = -1;
-      ratingDelta = -1;
+      ratingDelta = -10; // -10 to reverse like
       break;
     case 'dislike':
       deltaDislikes = 1;
-      ratingDelta = -1;
+      ratingDelta = -15; // -15 for dislike
       break;
     case 'undislike':
       deltaDislikes = -1;
-      ratingDelta = 1;
+      ratingDelta = 15; // +15 to reverse dislike
       break;
   }
 
@@ -411,40 +437,31 @@ export async function mutateArticleReaction(
       }
     }
 
-    // B. Update profiles category ratings
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('category_ratings')
-      .eq('id', userId)
-      .single();
-
-    if (!profileError && profile) {
-      const ratings: CategoryRatings = profile.category_ratings || {};
-
-      // Mutate subcategory weight
-      if (article.subcategory) {
-        const currentSubcatRating = ratings[article.subcategory] || 0;
-        ratings[article.subcategory] = currentSubcatRating + ratingDelta;
+    // B. Update profiles category ratings via RPC
+    if (article.subcategory) {
+      const { error: rpcError } = await supabase.rpc('update_user_category_rating', {
+        user_id: userId,
+        cat_name: article.subcategory,
+        rating_delta: ratingDelta,
+      });
+      if (rpcError) {
+        console.error('Error updating subcategory rating via RPC:', rpcError);
       }
+    }
 
-      // Mutate specific entity weights
-      if (Array.isArray(article.entities)) {
-        article.entities.forEach((entity: string) => {
-          if (entity && entity.trim()) {
-            const entityKey = `entity:${entity.trim().toLowerCase()}`;
-            const currentEntityRating = ratings[entityKey] || 0;
-            ratings[entityKey] = currentEntityRating + ratingDelta;
+    if (Array.isArray(article.entities)) {
+      for (const entity of article.entities) {
+        if (entity && entity.trim()) {
+          const entityKey = `entity:${entity.trim().toLowerCase()}`;
+          const { error: rpcError } = await supabase.rpc('update_user_category_rating', {
+            user_id: userId,
+            cat_name: entityKey,
+            rating_delta: ratingDelta,
+          });
+          if (rpcError) {
+            console.error('Error updating entity rating via RPC:', rpcError);
           }
-        });
-      }
-
-      const { error: profileUpdateError } = await supabase
-        .from('profiles')
-        .update({ category_ratings: ratings })
-        .eq('id', userId);
-
-      if (profileUpdateError) {
-        console.error('Error updating profile category ratings:', profileUpdateError);
+        }
       }
     }
   }
@@ -472,6 +489,7 @@ export async function markAsSeen(articleId: string): Promise<{ success: boolean 
     return { success: false };
   }
 
+  // Insert seen record
   const { error } = await supabase
     .from('user_seen_articles')
     .insert({
@@ -479,13 +497,47 @@ export async function markAsSeen(articleId: string): Promise<{ success: boolean 
       article_id: articleId,
     });
 
-  if (error) {
-    // If it's a unique constraint error (user already saw it), we can ignore it
-    if (error.code === '23505') {
-      return { success: true };
-    }
+  if (error && error.code !== '23505') {
     console.error('Error inserting user_seen_articles record:', error.message);
     throw new Error(`Failed to mark article as seen: ${error.message}`);
+  }
+
+  // Fetch article's subcategory and entities to update ratings
+  const { data: article } = await supabase
+    .from('articles')
+    .select('subcategory, entities')
+    .eq('id', articleId)
+    .single();
+
+  if (article) {
+    const readDelta = 1;
+
+    if (article.subcategory) {
+      const { error: rpcError } = await supabase.rpc('update_user_category_rating', {
+        user_id: userId,
+        cat_name: article.subcategory,
+        rating_delta: readDelta,
+      });
+      if (rpcError) {
+        console.error('Error updating subcategory rating via RPC on read:', rpcError);
+      }
+    }
+
+    if (Array.isArray(article.entities)) {
+      for (const entity of article.entities) {
+        if (entity && entity.trim()) {
+          const entityKey = `entity:${entity.trim().toLowerCase()}`;
+          const { error: rpcError } = await supabase.rpc('update_user_category_rating', {
+            user_id: userId,
+            cat_name: entityKey,
+            rating_delta: readDelta,
+          });
+          if (rpcError) {
+            console.error('Error updating entity rating via RPC on read:', rpcError);
+          }
+        }
+      }
+    }
   }
 
   return { success: true };

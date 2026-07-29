@@ -250,8 +250,13 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .single();
-          setProfile(profileData);
+            .maybeSingle();
+          setProfile(profileData || {
+            id: session.user.id,
+            email: session.user.email || '',
+            username: session.user.email?.split('@')[0] || 'user',
+            category_ratings: {},
+          });
         } else {
           setProfile(null);
         }
@@ -273,8 +278,13 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
               .from('profiles')
               .select('*')
               .eq('id', session.user.id)
-              .single();
-            setProfile(profileData);
+              .maybeSingle();
+            setProfile(profileData || {
+              id: session.user.id,
+              email: session.user.email || '',
+              username: session.user.email?.split('@')[0] || 'user',
+              category_ratings: {},
+            });
           } catch (err) {
             console.error('Error fetching profile on auth change:', err);
           }
