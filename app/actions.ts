@@ -220,8 +220,12 @@ export async function getPersonalizedFeed(userId: string, searchQuery?: string):
     return feed;
   }
 
-  // 4. Calculate affinity score for each article based on subcategory & entities
-  const calculateAffinity = (article: Article): number => {
+  const now = Date.now();
+
+  // 4. Calculate final score for each article using the hybrid ranking formula
+  // Formula: FinalScore = ((InterestScore * 0.4) + (UserCategoryRating * 0.6)) / ((1 + AgeInHours) ^ 1.2)
+  const getFinalScore = (article: Article): number => {
+    // Calculate UserCategoryRating (affinity score)
     let subcatWeight = article.subcategory ? (ratings[article.subcategory] || 0) : 0;
     let entityWeight = 0;
     if (Array.isArray(article.entities)) {
@@ -232,102 +236,22 @@ export async function getPersonalizedFeed(userId: string, searchQuery?: string):
         }
       });
     }
-    return subcatWeight + entityWeight;
+    const userCategoryRating = subcatWeight + entityWeight;
+
+    // Calculate AgeInHours
+    const ageInMs = now - new Date(article.published_at).getTime();
+    const ageInHours = Math.max(0, ageInMs / (1000 * 60 * 60));
+
+    // Calculate FinalScore
+    const interestScore = article.interest_score || 0;
+    const finalScore = ((interestScore * 0.4) + (userCategoryRating * 0.6)) / Math.pow(1 + ageInHours, 1.2);
+    
+    return finalScore;
   };
 
-  const now = Date.now();
+  const sortedArticles = [...articles].sort((a, b) => getFinalScore(b) - getFinalScore(a));
 
-  // Group articles by chronological blocks (0-3 days, 3-6 days, etc.)
-  const groupsMap = new Map<number, Article[]>();
-  articles.forEach((art) => {
-    const diff = now - new Date(art.published_at).getTime();
-    const group = Math.max(0, Math.floor(diff / (72 * 60 * 60 * 1000)));
-    if (!groupsMap.has(group)) {
-      groupsMap.set(group, []);
-    }
-    groupsMap.get(group)!.push(art);
-  });
-
-  const sortedGroups = Array.from(groupsMap.keys()).sort((a, b) => a - b);
-  const finalFeed: Article[] = [];
-
-  sortedGroups.forEach((groupKey) => {
-    const groupArticles = groupsMap.get(groupKey)!;
-
-    // Split into 3 pools within the chronological block:
-    // High-Affinity (affinity > 0)
-    // Discovery (affinity === 0, unrated subcategories/entities)
-    // Suppressed (affinity < 0)
-    const highAffinity: Article[] = [];
-    const discovery: Article[] = [];
-    const suppressed: Article[] = [];
-
-    groupArticles.forEach((art) => {
-      const score = calculateAffinity(art);
-      if (score > 0) {
-        highAffinity.push(art);
-      } else if (score < 0) {
-        suppressed.push(art);
-      } else {
-        discovery.push(art);
-      }
-    });
-
-    // Sort High-Affinity DESC by affinity score, then interest_score DESC
-    highAffinity.sort((a, b) => {
-      const affA = calculateAffinity(a);
-      const affB = calculateAffinity(b);
-      if (affB !== affA) return affB - affA;
-      if (b.interest_score !== a.interest_score) return b.interest_score - a.interest_score;
-      return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
-    });
-
-    // Sort Discovery DESC by system interest_score, then publication date
-    discovery.sort((a, b) => {
-      if (b.interest_score !== a.interest_score) return b.interest_score - a.interest_score;
-      return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
-    });
-
-    // Sort Suppressed DESC by affinity score (least negative first), then interest_score DESC
-    suppressed.sort((a, b) => {
-      const affA = calculateAffinity(a);
-      const affB = calculateAffinity(b);
-      if (affB !== affA) return affB - affA;
-      if (b.interest_score !== a.interest_score) return b.interest_score - a.interest_score;
-      return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
-    });
-
-    // Interleave High-Affinity (80%) and Discovery (20% slot allocation)
-    const interleavedGroup: Article[] = [];
-    let highIdx = 0;
-    let discIdx = 0;
-    let slotCount = 0;
-
-    while (highIdx < highAffinity.length || discIdx < discovery.length) {
-      slotCount++;
-      // Every 5th item (20%) is reserved for Discovery if available
-      const isDiscoverySlot = slotCount % 5 === 0;
-
-      if (isDiscoverySlot) {
-        if (discIdx < discovery.length) {
-          interleavedGroup.push(discovery[discIdx++]);
-        } else if (highIdx < highAffinity.length) {
-          interleavedGroup.push(highAffinity[highIdx++]);
-        }
-      } else {
-        if (highIdx < highAffinity.length) {
-          interleavedGroup.push(highAffinity[highIdx++]);
-        } else if (discIdx < discovery.length) {
-          interleavedGroup.push(discovery[discIdx++]);
-        }
-      }
-    }
-
-    // Append Suppressed articles at the very end of the block
-    finalFeed.push(...interleavedGroup, ...suppressed);
-  });
-
-  return finalFeed;
+  return sortedArticles;
 }
 
 /**
