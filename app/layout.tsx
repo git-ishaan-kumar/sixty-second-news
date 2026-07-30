@@ -25,6 +25,12 @@ export const metadata: Metadata = {
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: '60s News',
+  },
 };
 
 import { createClient, createAdminClient } from "../utils/supabase/server";

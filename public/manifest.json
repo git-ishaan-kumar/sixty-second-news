@@ -1,0 +1,13 @@
+{
+  "name": "Sixty Second News",
+  "short_name": "60s News",
+  "start_url": "/",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
