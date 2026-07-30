@@ -435,23 +435,63 @@ STRICT CONSTRAINT RULES:
       }
     }
 
-    // 7. Database Hygiene - Delete articles older than 5 days
-    const fiveDaysAgo = new Date();
-    fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
-    const dateLimitIso = fiveDaysAgo.toISOString();
+    // 7. Per-Category Article Cap Cleanup
+    let totalDeleted = 0;
+    const allCategories = Object.keys(CATEGORY_WHITELISTS) as NewsCategory[];
 
-    console.log(`Performing database hygiene. Deleting articles published before ${dateLimitIso}`);
-    const { data: deletedData, error: deleteError } = await supabase
-      .from('articles')
-      .delete()
-      .lt('published_at', dateLimitIso)
-      .select('id');
+    for (const category of allCategories) {
+      const newArticlesForCategory = articlesToUpsert.filter((a) => a.category === category);
+      const N = newArticlesForCategory.length;
+      if (N === 0) {
+        continue;
+      }
 
-    if (deleteError) {
-      console.error('Error during database hygiene / deletion:', deleteError);
-      // We don't fail the request here since upserting was successful
-    } else {
-      console.log(`Hygiene complete. Deleted ${deletedData?.length || 0} old articles.`);
+      // Check current count of articles in the database for this category
+      const { count: dbCount, error: countError } = await supabase
+        .from('articles')
+        .select('*', { count: 'exact', head: true })
+        .eq('category', category);
+
+      if (countError) {
+        console.error(`Error counting articles for category ${category}:`, countError);
+        continue;
+      }
+
+      const currentCount = dbCount || 0;
+      if (currentCount > 100) {
+        const excess = currentCount - 100;
+        console.log(`Category '${category}' count is ${currentCount} (exceeds cap of 100). Deleting the oldest ${excess} articles.`);
+
+        // Fetch the oldest `excess` articles for this category
+        const { data: oldestArticles, error: fetchOldestError } = await supabase
+          .from('articles')
+          .select('id')
+          .eq('category', category)
+          .order('published_at', { ascending: true })
+          .limit(excess);
+
+        if (fetchOldestError) {
+          console.error(`Error fetching oldest articles for category ${category}:`, fetchOldestError);
+          continue;
+        }
+
+        if (oldestArticles && oldestArticles.length > 0) {
+          const idsToDelete = oldestArticles.map((a) => a.id);
+          const { data: deletedRows, error: deleteError } = await supabase
+            .from('articles')
+            .delete()
+            .in('id', idsToDelete)
+            .select('id');
+
+          if (deleteError) {
+            console.error(`Error deleting oldest articles for category ${category}:`, deleteError);
+          } else {
+            const deletedCount = deletedRows?.length || 0;
+            totalDeleted += deletedCount;
+            console.log(`Deleted ${deletedCount} oldest articles for category '${category}'.`);
+          }
+        }
+      }
     }
 
     // 8. Database Sync Tracking - Insert completion confirmation log
@@ -466,7 +506,7 @@ STRICT CONSTRAINT RULES:
     return NextResponse.json({
       success: true,
       processed: articlesToUpsert.length,
-      deleted: deletedData?.length || 0,
+      deleted: totalDeleted,
     });
 
   } catch (err: any) {
