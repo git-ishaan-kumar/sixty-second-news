@@ -17,8 +17,14 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Sixty Second News",
-  description: "Aggregating global breaking news, rewritten into engaging 60-second hooks with flippable cards.",
+  title: 'Sixty Second News',
+  description: 'Get news in 60 seconds or less',
+  icons: {
+    icon: '/icon.svg',
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 };
 
 import { createClient, createAdminClient } from "../utils/supabase/server";
