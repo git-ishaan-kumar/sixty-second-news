@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { TikTok_Sans, Montserrat } from "next/font/google";
 import { Suspense } from "react";
 import Sidebar from "../components/layout/Sidebar";
@@ -16,9 +16,22 @@ const montserrat = Montserrat({
   variable: "--font-montserrat",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1.0,
+};
+
 export const metadata: Metadata = {
-  title: 'Sixty Second News',
-  description: 'Get news in 60 seconds or less',
+  title: "Sixty Second News — Fast Summaries & Breaking Headlines",
+  description: "A news app that provides fast summaries and headlines categorized by topic, allowing users to swipe through breaking news headlines and view original sources.",
+  keywords: ["news", "breaking news", "news summaries", "60 second news", "fast news", "news aggregator", "fyp news"],
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: "https://sixty-second-news.vercel.app/",
+  },
   icons: {
     icon: '/icon.svg',
     apple: [
@@ -30,6 +43,24 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: '60s News',
+  },
+  openGraph: {
+    type: "website",
+    title: "Sixty Second News — Fast Summaries & Headlines",
+    description: "A news app that provides fast summaries and headlines categorized by topic, allowing users to swipe through breaking news headlines and view original sources.",
+    url: "https://sixty-second-news.vercel.app/",
+    siteName: "Sixty Second News",
+    images: [
+      {
+        url: "https://sixty-second-news.vercel.app/apple-touch-icon.png",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sixty Second News — Fast Summaries & Headlines",
+    description: "A news app that provides fast summaries and headlines categorized by topic, allowing users to swipe through breaking news headlines and view original sources.",
+    images: ["https://sixty-second-news.vercel.app/apple-touch-icon.png"],
   },
 };
 
