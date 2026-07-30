@@ -171,6 +171,29 @@ const InstallIcon = () => (
   </svg>
 );
 
+const ToggleIcon = ({ expanded }: { expanded: boolean }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="w-5 h-5 flex-shrink-0 transition-transform duration-300"
+  >
+    {expanded ? (
+      <path d="m15 18-6-6 6-6" />
+    ) : (
+      <>
+        <line x1="4" x2="20" y1="12" y2="12" />
+        <line x1="4" x2="20" y1="6" y2="6" />
+        <line x1="4" x2="20" y1="18" y2="18" />
+      </>
+    )}
+  </svg>
+);
+
 interface SidebarProps {
   initialUser?: any;
   initialProfile?: Profile | null;
@@ -185,6 +208,18 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
   const [timeLeft, setTimeLeft] = useState('');
   const [showFreshHeadlines, setShowFreshHeadlines] = useState(false);
   const [isToastExiting, setIsToastExiting] = useState(false);
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
+
+  // Close mobile sidebar on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMobileExpanded(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleDismissToast = (onComplete?: () => void) => {
     if (isToastExiting) return;
@@ -402,6 +437,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
 
   const handleNav = (path: string) => {
     setSearchQuery('');
+    setIsMobileExpanded(false);
     router.push(path);
   };
 
@@ -411,6 +447,7 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
       setUser(null);
       setProfile(null);
       setIsProfileOpen(false);
+      setIsMobileExpanded(false);
       router.refresh();
       router.push('/');
     } catch (err) {
@@ -430,324 +467,420 @@ export default function Sidebar({ initialUser = null, initialProfile = null }: S
   const isProfileActive = pathname === '/profile';
 
   return (
-    <aside className="flex w-16 md:w-64 h-screen flex-col justify-between p-2 md:p-3 pb-8 md:pb-6 bg-pitch-charcoal border-r border-muted-slate/10 text-pure-white transition-all duration-300 z-50 flex-shrink-0 sticky top-0 font-montserrat">
-      
-      {/* Top Group: Brand Header and Navigation Links */}
-      <div className="flex flex-col gap-2 w-full">
-        {/* Brand Header */}
-        <button
-          onClick={() => handleNav('/')}
-          className="flex flex-col md:flex-row items-center gap-2 px-1 py-2 mb-6 select-none cursor-pointer hover:opacity-80 transition-opacity text-left w-full md:w-auto"
-        >
-          <img
-            src="/icon.svg"
-            alt="Sixty Second News Logo"
-            className="w-8 h-8 rounded-full flex-shrink-0 shadow-md shadow-hyper-blue/20"
-          />
-          <span className="hidden md:inline text-base font-bold tracking-tight text-pure-white leading-normal">
-            Sixty Second News
-          </span>
-        </button>
+    <>
+      {/* Mobile overlay backdrop */}
+      {isMobileExpanded && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden animate-fadeIn"
+          onClick={() => setIsMobileExpanded(false)}
+        />
+      )}
 
-        {/* Primary Navigation Section */}
-        <nav className="flex flex-col gap-2 w-full">
-          {/* Search Bar / Search Button */}
-          <div className="w-full mb-1">
-            {/* Desktop Search Input */}
-            <div className="hidden md:block relative w-full px-1">
-              <input
-                type="text"
-                placeholder="Search news..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#1e1e24] text-pure-white placeholder-muted-slate text-xs pl-3 pr-8 py-2 rounded-lg border border-muted-slate/20 focus:outline-none focus:border-hyper-blue focus:ring-1 focus:ring-hyper-blue transition-all"
+      <aside className="relative w-16 md:w-64 h-screen flex-shrink-0 z-50">
+        <div className={`fixed md:sticky top-0 left-0 h-screen bg-pitch-charcoal border-r border-muted-slate/10 text-pure-white transition-all duration-300 font-montserrat flex flex-col justify-between p-2 md:p-3 pb-8 md:pb-6 z-50 ${
+          isMobileExpanded ? 'w-56' : 'w-16'
+        } md:w-64`}>
+          
+          {/* Top Group: Brand Header and Navigation Links */}
+          <div className="flex flex-col gap-2 w-full">
+            {/* Mobile Toggle Button */}
+            <button
+              onClick={() => setIsMobileExpanded(!isMobileExpanded)}
+              className={`flex md:hidden w-full items-center ${isMobileExpanded ? 'justify-start gap-3 px-3' : 'justify-center'} py-2.5 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all text-sm font-medium cursor-pointer`}
+              title={isMobileExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
+            >
+              <ToggleIcon expanded={isMobileExpanded} />
+              <span className={`transition-all duration-300 truncate ${
+                isMobileExpanded 
+                  ? 'opacity-100 max-w-[150px] inline-block font-semibold' 
+                  : 'opacity-0 max-w-0 hidden'
+              }`}>
+                Collapse
+              </span>
+            </button>
+
+            {/* Brand Header */}
+            <button
+              onClick={() => handleNav('/')}
+              className={`flex ${isMobileExpanded ? 'flex-row gap-3 px-3' : 'flex-col md:flex-row items-center gap-2 px-1'} py-2 mb-6 select-none cursor-pointer hover:opacity-80 transition-opacity text-left w-full`}
+            >
+              <img
+                src="/icon.svg"
+                alt="Sixty Second News Logo"
+                className="w-8 h-8 rounded-full flex-shrink-0 shadow-md shadow-hyper-blue/20"
               />
-              {searchQuery && (
+              <span className={`text-base font-bold tracking-tight text-pure-white leading-normal transition-all duration-300 truncate ${
+                isMobileExpanded 
+                  ? 'opacity-100 max-w-[200px] inline-block' 
+                  : 'opacity-0 max-w-0 hidden md:inline-block md:opacity-100 md:max-w-none'
+              }`}>
+                Sixty Second News
+              </span>
+            </button>
+
+            {/* Primary Navigation Section */}
+            <nav className="flex flex-col gap-2 w-full">
+              {/* Search Bar / Search Button */}
+              <div className="w-full mb-1">
+                {/* Desktop Search Input */}
+                <div className="hidden md:block relative w-full px-1">
+                  <input
+                    type="text"
+                    placeholder="Search news..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-[#1e1e24] text-pure-white placeholder-muted-slate text-xs pl-3 pr-8 py-2 rounded-lg border border-muted-slate/20 focus:outline-none focus:border-hyper-blue focus:ring-1 focus:ring-hyper-blue transition-all"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-slate hover:text-pure-white transition-colors cursor-pointer"
+                      title="Clear search"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                {/* Mobile Search Icon Button */}
                 <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-slate hover:text-pure-white transition-colors cursor-pointer"
-                  title="Clear search"
+                  onClick={() => setIsMobileSearchOpen(true)}
+                  className={`flex md:hidden w-full items-center ${isMobileExpanded ? 'justify-start gap-3 px-3' : 'justify-center'} py-2.5 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all text-sm font-medium`}
+                  title="Search"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
+                  <SearchIcon />
+                  <span className={`transition-all duration-300 truncate ${
+                    isMobileExpanded 
+                      ? 'opacity-100 max-w-[150px] inline-block' 
+                      : 'opacity-0 max-w-0 hidden'
+                  }`}>
+                    Search
+                  </span>
+                </button>
+              </div>
+
+              {/* Home/Feed Link */}
+              <button
+                onClick={() => handleNav('/')}
+                className={`w-full flex items-center ${isMobileExpanded ? 'justify-start gap-3 px-3' : 'justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3'} py-2.5 rounded-lg transition-all text-sm font-medium ${
+                  isHomeActive
+                    ? 'text-hyper-blue bg-hyper-blue/10'
+                    : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
+                }`}
+              >
+                <HomeIcon active={isHomeActive} />
+                <span className={`transition-all duration-300 truncate ${
+                  isMobileExpanded 
+                    ? 'opacity-100 max-w-[150px] inline-block' 
+                    : 'opacity-0 max-w-0 hidden md:inline-block md:opacity-100 md:max-w-none'
+                }`}>
+                  {user ? 'For You' : 'Home'}
+                </span>
+              </button>
+
+              {/* Trending Link (Logged in users only) */}
+              {user && (
+                <button
+                  onClick={() => handleNav('/?category=trending')}
+                  className={`w-full flex items-center ${isMobileExpanded ? 'justify-start gap-3 px-3' : 'justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3'} py-2.5 rounded-lg transition-all text-sm font-medium ${
+                    isTrendingActive
+                      ? 'text-hyper-blue bg-hyper-blue/10'
+                      : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
+                  }`}
+                >
+                  <TrendingIcon active={isTrendingActive} />
+                  <span className={`transition-all duration-300 truncate ${
+                    isMobileExpanded 
+                      ? 'opacity-100 max-w-[150px] inline-block' 
+                      : 'opacity-0 max-w-0 hidden md:inline-block md:opacity-100 md:max-w-none'
+                  }`}>
+                    Trending
+                  </span>
+                </button>
+              )}
+
+              {/* Latest Link */}
+              <button
+                onClick={() => handleNav('/latest')}
+                className={`w-full flex items-center ${isMobileExpanded ? 'justify-start gap-3 px-3' : 'justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3'} py-2.5 rounded-lg transition-all text-sm font-medium ${
+                  isLatestActive
+                    ? 'text-hyper-blue bg-hyper-blue/10'
+                    : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
+                }`}
+              >
+                <LatestIcon active={isLatestActive} />
+                <span className={`transition-all duration-300 truncate ${
+                  isMobileExpanded 
+                    ? 'opacity-100 max-w-[150px] inline-block' 
+                    : 'opacity-0 max-w-0 hidden md:inline-block md:opacity-100 md:max-w-none'
+                }`}>
+                  Latest
+                </span>
+              </button>
+
+              {/* Profile Link (Logged in users only) */}
+              {user && (
+                <button
+                  onClick={() => {
+                    setIsProfileOpen(!isProfileOpen);
+                  }}
+                  className={`w-full flex items-center ${isMobileExpanded ? 'justify-start gap-3 px-3' : 'justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3'} py-2.5 rounded-lg transition-all text-sm font-medium ${
+                    isProfileActive
+                      ? 'text-hyper-blue bg-hyper-blue/10'
+                      : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
+                  }`}
+                >
+                  {profile?.username ? (
+                    <div className={`w-5 h-5 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white text-[10px] font-bold flex-shrink-0 uppercase border ${isProfileActive ? 'border-pure-white' : 'border-transparent'}`}>
+                      {profile.username.charAt(0)}
+                    </div>
+                  ) : (
+                    <div className={`w-5 h-5 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white text-[10px] font-bold flex-shrink-0 uppercase border ${isProfileActive ? 'border-pure-white' : 'border-transparent'}`}>
+                      {user.email?.charAt(0) || 'U'}
+                    </div>
+                  )}
+                  <span className={`transition-all duration-300 truncate ${
+                    isMobileExpanded 
+                      ? 'opacity-100 max-w-[150px] inline-block' 
+                      : 'opacity-0 max-w-0 hidden md:inline-block md:opacity-100 md:max-w-none'
+                  }`}>
+                    Profile
+                  </span>
+                </button>
+              )}
+
+              {/* Profile Dropdown Options */}
+              {user && isProfileOpen && (
+                <div className={`flex flex-col gap-1 w-full transition-all duration-200 ${isMobileExpanded ? 'pl-4' : 'pl-0 md:pl-4'}`}>
+                  {/* Settings Option */}
+                  <button
+                    onClick={() => {
+                      handleNav('/profile');
+                      setIsProfileOpen(false);
+                    }}
+                    className={`w-full flex items-center ${isMobileExpanded ? 'justify-start gap-3 px-3' : 'justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3'} py-2 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all text-xs font-semibold`}
+                    title="Settings"
+                  >
+                    <SettingsIcon />
+                    <span className={`transition-all duration-300 truncate ${
+                      isMobileExpanded 
+                        ? 'opacity-100 max-w-[150px] inline-block' 
+                        : 'opacity-0 max-w-0 hidden md:inline-block md:opacity-100 md:max-w-none'
+                    }`}>
+                      Settings
+                    </span>
+                  </button>
+                  {/* Log Out Option */}
+                  <button
+                    onClick={handleLogout}
+                    className={`w-full flex items-center ${isMobileExpanded ? 'justify-start gap-3 px-3' : 'justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3'} py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-xs font-semibold cursor-pointer`}
+                    title="Log Out"
+                  >
+                    <LogoutIcon />
+                    <span className={`transition-all duration-300 truncate ${
+                      isMobileExpanded 
+                        ? 'opacity-100 max-w-[150px] inline-block' 
+                        : 'opacity-0 max-w-0 hidden md:inline-block md:opacity-100 md:max-w-none'
+                    }`}>
+                      Log Out
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {/* Authentication Section (Non-Logged-In Users Only) */}
+              {!loading && !user && (
+                <div className="flex flex-col gap-2 w-full mt-4 border-t border-muted-slate/10 pt-4">
+                  {/* Desktop CTAs */}
+                  <div className="hidden md:flex flex-col gap-2 w-full">
+                    <button
+                      onClick={() => handleNav('/login')}
+                      className="w-full text-center py-2 border border-hyper-blue text-hyper-blue hover:bg-hyper-blue/50 hover:text-pure-white rounded-lg font-semibold transition-all text-xs"
+                    >
+                      Log in
+                    </button>
+                    <button
+                      onClick={() => handleNav('/signup')}
+                      className="w-full text-center py-2 bg-hyper-blue text-pure-white hover:bg-hyper-blue/90 rounded-lg font-semibold transition-all text-xs"
+                    >
+                      Register
+                    </button>
+                  </div>
+
+                  {/* Mobile Collapsed/Expanded Authentication Icons */}
+                  <div className="flex md:hidden flex-col gap-2 items-center w-full">
+                    <button
+                      onClick={() => handleNav('/login')}
+                      className={`w-full flex items-center ${isMobileExpanded ? 'justify-start gap-3 px-3' : 'justify-center'} py-2.5 border border-muted-slate/20 text-muted-slate hover:text-pure-white hover:border-pure-white rounded-lg transition-all text-xs font-semibold`}
+                      title="Log in"
+                    >
+                      <LoginIcon />
+                      <span className={`transition-all duration-300 truncate ${
+                        isMobileExpanded 
+                          ? 'opacity-100 max-w-[150px] inline-block' 
+                          : 'opacity-0 max-w-0 hidden'
+                      }`}>
+                        Log In
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => handleNav('/signup')}
+                      className={`w-full flex items-center ${isMobileExpanded ? 'justify-start gap-3 px-3' : 'justify-center'} py-2.5 bg-hyper-blue/10 border border-hyper-blue/30 text-hyper-blue hover:bg-hyper-blue hover:text-pure-white rounded-lg transition-all text-xs font-semibold`}
+                      title="Register"
+                    >
+                      <RegisterIcon />
+                      <span className={`transition-all duration-300 truncate ${
+                        isMobileExpanded 
+                          ? 'opacity-100 max-w-[150px] inline-block' 
+                          : 'opacity-0 max-w-0 hidden'
+                      }`}>
+                        Sign Up
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </nav>
+          </div>
+
+          {/* Bottom Group: Install App Button and Footer Info */}
+          <div className="flex flex-col gap-3 w-full">
+            {/* Client-side 'Install App' trigger button */}
+            {showInstallBtn && (
+              <div className="md:hidden relative w-full border-t border-muted-slate/10 pt-2 flex flex-col items-center animate-fadeIn">
+                <button
+                  onClick={handleInstallClick}
+                  className={`w-full flex items-center ${isMobileExpanded ? 'justify-start gap-3 px-3' : 'justify-center'} py-2.5 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all text-sm font-medium cursor-pointer`}
+                  title="Install App"
+                >
+                  <InstallIcon />
+                  <span className={`transition-all duration-300 truncate ${
+                    isMobileExpanded 
+                      ? 'opacity-100 max-w-[150px] inline-block' 
+                      : 'opacity-0 max-w-0 hidden'
+                  }`}>
+                    Install App
+                  </span>
+                </button>
+                
+                {showIosTooltip && (
+                  <div className="fixed bottom-24 left-4 z-[9999] w-[calc(100vw-32px)] max-w-[280px] bg-[#16161A] border border-hyper-blue p-3.5 rounded-xl shadow-2xl text-left animate-fadeIn">
+                    <p className="text-xs font-semibold text-pure-white leading-relaxed">
+                      To install: tap the browser's <span className="text-hyper-blue font-bold">Share</span> icon then select <span className="text-hyper-blue font-bold">Add to Home Screen</span>.
+                    </p>
+                    {/* Arrow caret pointing down towards browser navigation bar */}
+                    <div className="absolute top-full left-8 -translate-x-1/2 border-x-6 border-x-transparent border-t-6 border-t-hyper-blue" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Footer (Countdown & Logged in Indicator) */}
+            <div className={`${isMobileExpanded ? 'flex' : 'hidden'} md:flex border-t border-muted-slate/10 pt-3 flex-col gap-3 select-none`}>
+              {/* Countdown Widget */}
+              <div className="flex flex-col items-start gap-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-muted-slate font-bold">
+                  Next Refresh
+                </span>
+                <span className="text-xs md:text-sm font-extrabold font-mono text-hyper-blue bg-hyper-blue/5 border border-hyper-blue/10 px-2 py-1 rounded-md">
+                  {timeLeft || '00:00'}
+                </span>
+              </div>
+              
+              {/* Logged in Indicator */}
+              {user && (
+                <div className="text-[10px] text-muted-slate border-t border-muted-slate/5 pt-2">
+                  Signed in as <span className="text-pure-white block truncate">@{profile?.username || user.email?.split('@')[0]}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Mobile Search Overlay Modal */}
+          {isMobileSearchOpen && (
+            <div className="fixed inset-0 bg-[#16161A]/95 backdrop-blur-md z-[9999] flex flex-col p-4 md:hidden font-montserrat animate-fadeIn">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <span className="text-sm font-bold tracking-wider text-pure-white uppercase">Search News</span>
+                <button
+                  onClick={() => setIsMobileSearchOpen(false)}
+                  className="p-1 rounded-full bg-[#1e1e24] text-muted-slate hover:text-pure-white transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                   </svg>
                 </button>
-              )}
-            </div>
-            {/* Mobile Search Icon Button */}
-            <button
-              onClick={() => setIsMobileSearchOpen(true)}
-              className="block md:hidden w-full flex items-center justify-center p-2.5 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all"
-              title="Search"
-            >
-              <SearchIcon />
-            </button>
-          </div>
-
-          {/* Home/Feed Link */}
-          <button
-            onClick={() => handleNav('/')}
-            className={`w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              isHomeActive
-                ? 'text-hyper-blue bg-hyper-blue/10'
-                : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
-            }`}
-          >
-            <HomeIcon active={isHomeActive} />
-            <span className="hidden md:inline">
-              {user ? 'For You' : 'Home'}
-            </span>
-          </button>
-
-          {/* Trending Link (Logged in users only) */}
-          {user && (
-            <button
-              onClick={() => handleNav('/?category=trending')}
-              className={`w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-                isTrendingActive
-                  ? 'text-hyper-blue bg-hyper-blue/10'
-                  : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
-              }`}
-            >
-              <TrendingIcon active={isTrendingActive} />
-              <span className="hidden md:inline">Trending</span>
-            </button>
-          )}
-
-          {/* Latest Link */}
-          <button
-            onClick={() => handleNav('/latest')}
-            className={`w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              isLatestActive
-                ? 'text-hyper-blue bg-hyper-blue/10'
-                : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
-            }`}
-          >
-            <LatestIcon active={isLatestActive} />
-            <span className="hidden md:inline">Latest</span>
-          </button>
-
-          {/* Profile Link (Logged in users only) */}
-          {user && (
-            <button
-              onClick={() => {
-                setIsProfileOpen(!isProfileOpen);
-              }}
-              className={`w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-                isProfileActive
-                  ? 'text-hyper-blue bg-hyper-blue/10'
-                  : 'text-muted-slate hover:text-pure-white hover:bg-pure-white/5'
-              }`}
-            >
-              {profile?.username ? (
-                <div className={`w-5 h-5 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white text-[10px] font-bold flex-shrink-0 uppercase border ${isProfileActive ? 'border-pure-white' : 'border-transparent'}`}>
-                  {profile.username.charAt(0)}
-                </div>
-              ) : (
-                <div className={`w-5 h-5 rounded-full bg-hyper-blue flex items-center justify-center text-pure-white text-[10px] font-bold flex-shrink-0 uppercase border ${isProfileActive ? 'border-pure-white' : 'border-transparent'}`}>
-                  {user.email?.charAt(0) || 'U'}
-                </div>
-              )}
-              <span className="hidden md:inline">Profile</span>
-            </button>
-          )}
-
-          {/* Profile Dropdown Options */}
-          {user && isProfileOpen && (
-            <div className="flex flex-col gap-1 w-full pl-0 md:pl-4 transition-all duration-200">
-              {/* Settings Option */}
-              <button
-                onClick={() => {
-                  handleNav('/profile');
-                  setIsProfileOpen(false);
-                }}
-                className="w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3 py-2 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all text-xs font-semibold"
-                title="Settings"
-              >
-                <SettingsIcon />
-                <span className="hidden md:inline">Settings</span>
-              </button>
-              {/* Log Out Option */}
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center justify-center md:justify-start gap-2 md:gap-3 px-2 md:px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-xs font-semibold cursor-pointer"
-                title="Log Out"
-              >
-                <LogoutIcon />
-                <span className="hidden md:inline">Log Out</span>
-              </button>
-            </div>
-          )}
-
-          {/* Authentication Section (Non-Logged-In Users Only) */}
-          {!loading && !user && (
-            <div className="flex flex-col gap-2 w-full mt-4 border-t border-muted-slate/10 pt-4">
-              {/* Desktop CTAs */}
-              <div className="hidden md:flex flex-col gap-2 w-full">
-                <button
-                  onClick={() => handleNav('/login')}
-                  className="w-full text-center py-2 border border-hyper-blue text-hyper-blue hover:bg-hyper-blue/50 hover:text-pure-white rounded-lg font-semibold transition-all text-xs"
-                >
-                  Log in
-                </button>
-                <button
-                  onClick={() => handleNav('/signup')}
-                  className="w-full text-center py-2 bg-hyper-blue text-pure-white hover:bg-hyper-blue/90 rounded-lg font-semibold transition-all text-xs"
-                >
-                  Register
-                </button>
               </div>
 
-              {/* Mobile Collapsed Authentication Icons */}
-              <div className="flex md:hidden flex-col gap-2 items-center w-full">
+              {/* Search Input Box */}
+              <div className="relative w-full mb-6">
+                <input
+                  type="text"
+                  placeholder="Search news..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#1e1e24] text-pure-white placeholder-muted-slate text-sm pl-4 pr-10 py-3 rounded-xl border border-muted-slate/20 focus:outline-none focus:border-hyper-blue focus:ring-1 focus:ring-hyper-blue transition-all"
+                  autoFocus
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-slate hover:text-pure-white transition-colors cursor-pointer"
+                    title="Clear search"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {/* Prompt / Instructions */}
+              <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-slate p-4">
+                <div className="text-4xl mb-3">🔍</div>
+                <p className="text-xs font-semibold text-pure-white/80">Search any news headline...</p>            
                 <button
-                  onClick={() => handleNav('/login')}
-                  className="w-10 h-10 flex items-center justify-center border border-muted-slate/20 text-muted-slate hover:text-pure-white hover:border-pure-white rounded-lg transition-all"
-                  title="Log in"
+                  onClick={() => setIsMobileSearchOpen(false)}
+                  className="mt-6 px-6 py-2 bg-hyper-blue text-pure-white font-bold rounded-lg text-xs tracking-wider uppercase transition-transform active:scale-95 cursor-pointer"
                 >
-                  <LoginIcon />
-                </button>
-                <button
-                  onClick={() => handleNav('/signup')}
-                  className="w-10 h-10 flex items-center justify-center bg-hyper-blue/10 border border-hyper-blue/30 text-hyper-blue hover:bg-hyper-blue hover:text-pure-white rounded-lg transition-all"
-                  title="Register"
-                >
-                  <RegisterIcon />
+                  View Results
                 </button>
               </div>
             </div>
           )}
-        </nav>
-      </div>
 
-      {/* Bottom Group: Install App Button and Footer Info */}
-      <div className="flex flex-col gap-3 w-full">
-        {/* Client-side 'Install App' trigger button */}
-        {showInstallBtn && (
-          <div className="md:hidden relative w-full border-t border-muted-slate/10 pt-2 flex flex-col items-center animate-fadeIn">
-            <button
-              onClick={handleInstallClick}
-              className="w-full flex items-center justify-center gap-3 px-2 py-2.5 rounded-lg text-muted-slate hover:text-pure-white hover:bg-pure-white/5 transition-all text-sm font-medium cursor-pointer"
-              title="Install App"
-            >
-              <InstallIcon />
-            </button>
-            
-            {showIosTooltip && (
-              <div className="fixed bottom-24 left-4 z-[9999] w-[calc(100vw-32px)] max-w-[280px] bg-[#16161A] border border-hyper-blue p-3.5 rounded-xl shadow-2xl text-left animate-fadeIn">
-                <p className="text-xs font-semibold text-pure-white leading-relaxed">
-                  To install: tap the browser's <span className="text-hyper-blue font-bold">Share</span> icon then select <span className="text-hyper-blue font-bold">Add to Home Screen</span>.
-                </p>
-                {/* Arrow caret pointing down towards browser navigation bar */}
-                <div className="absolute top-full left-8 -translate-x-1/2 border-x-6 border-x-transparent border-t-6 border-t-hyper-blue" />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Footer (Countdown & Logged in Indicator) */}
-        <div className="hidden md:flex border-t border-muted-slate/10 pt-3 flex-col gap-3 select-none">
-          {/* Countdown Widget */}
-          <div className="flex flex-col items-start gap-0.5">
-            <span className="text-[9px] uppercase tracking-wider text-muted-slate font-bold">
-              Next Refresh
-            </span>
-            <span className="text-xs md:text-sm font-extrabold font-mono text-hyper-blue bg-hyper-blue/5 border border-hyper-blue/10 px-2 py-1 rounded-md">
-              {timeLeft || '00:00'}
-            </span>
-          </div>
-          
-          {/* Logged in Indicator */}
-          {user && (
-            <div className="text-[10px] text-muted-slate border-t border-muted-slate/5 pt-2">
-              Signed in as <span className="text-pure-white block truncate">@{profile?.username || user.email?.split('@')[0]}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Mobile Search Overlay Modal */}
-      {isMobileSearchOpen && (
-        <div className="fixed inset-0 bg-[#16161A]/95 backdrop-blur-md z-[9999] flex flex-col p-4 md:hidden font-montserrat animate-fadeIn">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <span className="text-sm font-bold tracking-wider text-pure-white uppercase">Search News</span>
-            <button
-              onClick={() => setIsMobileSearchOpen(false)}
-              className="p-1 rounded-full bg-[#1e1e24] text-muted-slate hover:text-pure-white transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Search Input Box */}
-          <div className="relative w-full mb-6">
-            <input
-              type="text"
-              placeholder="Search news..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#1e1e24] text-pure-white placeholder-muted-slate text-sm pl-4 pr-10 py-3 rounded-xl border border-muted-slate/20 focus:outline-none focus:border-hyper-blue focus:ring-1 focus:ring-hyper-blue transition-all"
-              autoFocus
-            />
-            {searchQuery && (
+          {/* Fresh Headlines Toast Notification */}
+          {(showFreshHeadlines || isToastExiting) && (
+            <div className={`fixed bottom-4 right-4 md:bottom-auto md:top-6 md:right-6 w-[calc(100vw-32px)] md:w-auto min-w-[280px] max-w-sm bg-[#16161A] border border-[#2F80ED]/50 rounded-xl p-4 sm:pr-11 shadow-2xl z-[99999] flex flex-col sm:flex-row items-center gap-4 font-tiktok-sans ${isToastExiting ? 'toast-animate-exit' : 'toast-animate-enter'}`}>
+              
               <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-slate hover:text-pure-white transition-colors cursor-pointer"
-                title="Clear search"
+                onClick={() => handleDismissToast()}
+                className="absolute top-2 right-2 sm:top-1/2 sm:-translate-y-1/2 sm:right-3 text-[#9CA3AF] hover:text-[#FFFFFF] transition-colors p-1 cursor-pointer"
+                aria-label="Dismiss"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               </button>
-            )}
-          </div>
 
-          {/* Prompt / Instructions */}
-          <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-slate p-4">
-            <div className="text-4xl mb-3">🔍</div>
-            <p className="text-xs font-semibold text-pure-white/80">Search any news headline...</p>            
-            <button
-              onClick={() => setIsMobileSearchOpen(false)}
-              className="mt-6 px-6 py-2 bg-hyper-blue text-pure-white font-bold rounded-lg text-xs tracking-wider uppercase transition-transform active:scale-95 cursor-pointer"
-            >
-              View Results
-            </button>
-          </div>
+              <p className="text-[#FFFFFF] text-sm font-medium flex-1 pt-1 sm:pt-0 pl-1 pr-6 sm:pr-0">
+                New headlines have arrived.
+              </p>
+
+              <button
+                onClick={() => {
+                  handleDismissToast(() => handleNav('/latest'));
+                }}
+                className="w-full sm:w-auto shrink-0 bg-[#2F80ED] hover:bg-blue-600 text-[#FFFFFF] text-xs font-bold py-2 px-4 rounded-lg transition-colors shadow-md cursor-pointer"
+              >
+                View Latest
+              </button>
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Fresh Headlines Toast Notification */}
-      {(showFreshHeadlines || isToastExiting) && (
-        <div className={`fixed bottom-4 right-4 md:bottom-auto md:top-6 md:right-6 w-[calc(100vw-32px)] md:w-auto min-w-[280px] max-w-sm bg-[#16161A] border border-[#2F80ED]/50 rounded-xl p-4 sm:pr-11 shadow-2xl z-[99999] flex flex-col sm:flex-row items-center gap-4 font-tiktok-sans ${isToastExiting ? 'toast-animate-exit' : 'toast-animate-enter'}`}>
-          
-          <button
-            onClick={() => handleDismissToast()}
-            className="absolute top-2 right-2 sm:top-1/2 sm:-translate-y-1/2 sm:right-3 text-[#9CA3AF] hover:text-[#FFFFFF] transition-colors p-1 cursor-pointer"
-            aria-label="Dismiss"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-
-          <p className="text-[#FFFFFF] text-sm font-medium flex-1 pt-1 sm:pt-0 pl-1 pr-6 sm:pr-0">
-            New headlines have arrived.
-          </p>
-
-          <button
-            onClick={() => {
-              handleDismissToast(() => handleNav('/latest'));
-            }}
-            className="w-full sm:w-auto shrink-0 bg-[#2F80ED] hover:bg-blue-600 text-[#FFFFFF] text-xs font-bold py-2 px-4 rounded-lg transition-colors shadow-md cursor-pointer"
-          >
-            View Latest
-          </button>
-        </div>
-      )}
-    </aside>
+      </aside>
+    </>
   );
 }
