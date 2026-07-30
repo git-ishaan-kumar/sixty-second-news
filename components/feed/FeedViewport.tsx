@@ -26,6 +26,72 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [containerHeight, setContainerHeight] = useState(800);
 
+  // PWA Install Banner states
+  const [shouldRenderBanner, setShouldRenderBanner] = useState(false);
+  const [hasMetScrollTrigger, setHasMetScrollTrigger] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isIos, setIsIos] = useState(false);
+  const [showIosTooltip, setShowIosTooltip] = useState(false);
+
+  // Monitor activeIndex to set scroll trigger (past 3 articles)
+  useEffect(() => {
+    if (activeIndex >= 3) {
+      setHasMetScrollTrigger(true);
+    }
+  }, [activeIndex]);
+
+  // PWA & Mobile check
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+    const isDismissed = sessionStorage.getItem('pwa_banner_dismissed') === 'true';
+
+    const isIosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIos(isIosDevice);
+
+    if (isMobile && !isInstalled && !isDismissed) {
+      if (hasMetScrollTrigger) {
+        setShouldRenderBanner(true);
+      }
+
+      // Listen for prompt on Android / Chrome
+      const handleBeforeInstallPrompt = (e: Event) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+      };
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+      return () => {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      };
+    } else {
+      setShouldRenderBanner(false);
+    }
+  }, [hasMetScrollTrigger]);
+
+  const handleInstallClick = async () => {
+    if (isIos) {
+      setShowIosTooltip((prev) => !prev);
+      return;
+    }
+
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to install prompt: ${outcome}`);
+
+    setDeferredPrompt(null);
+    setShouldRenderBanner(false);
+  };
+
+  const handleDismissBanner = () => {
+    sessionStorage.setItem('pwa_banner_dismissed', 'true');
+    setShouldRenderBanner(false);
+  };
+
   const touchStartRef = useRef(0);
   const activeIndexRef = useRef(activeIndex);
   const isLocked = useRef(false);
@@ -330,6 +396,55 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
           </div>
         </div>
       )}
+
+      {/* PWA top install banner */}
+      <div className={`fixed top-0 left-0 right-0 z-[9999] bg-[#16161A]/95 backdrop-blur-md border-b border-muted-slate/10 px-4 py-3 flex items-center justify-between shadow-2xl transition-transform duration-500 ease-out font-montserrat ${
+        shouldRenderBanner ? 'translate-y-0' : '-translate-y-full'
+      }`}>
+        <div className="flex items-center gap-3">
+          <img
+            src="/apple-touch-icon.png"
+            alt="60s News Logo"
+            className="w-10 h-10 rounded-xl flex-shrink-0 shadow-md shadow-hyper-blue/20"
+          />
+          <div className="flex flex-col text-left">
+            <span className="text-xs font-bold text-pure-white leading-tight">60s News</span>
+            <span className="text-[10px] font-semibold text-muted-slate leading-normal">
+              Add 60s News to your Home Screen
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleInstallClick}
+            className="bg-hyper-blue hover:bg-blue-600 active:scale-95 text-pure-white text-xs font-bold py-1.5 px-4 rounded-lg transition-all shadow-md cursor-pointer"
+          >
+            Install
+          </button>
+          
+          <button
+            onClick={handleDismissBanner}
+            className="text-muted-slate hover:text-pure-white p-1 transition-colors cursor-pointer"
+            aria-label="Dismiss"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* iOS Tooltip Bubble */}
+        {showIosTooltip && (
+          <div className="absolute top-[calc(100%+8px)] right-4 z-[10000] w-[260px] bg-[#16161A] border border-hyper-blue p-3.5 rounded-xl shadow-2xl text-left animate-fadeIn">
+            <p className="text-xs font-semibold text-pure-white leading-relaxed">
+              To install: tap the browser's <span className="text-hyper-blue font-bold">Share</span> icon then select <span className="text-hyper-blue font-bold">Add to Home Screen</span>.
+            </p>
+            {/* Arrow caret pointing up towards the Install button */}
+            <div className="absolute bottom-full right-16 border-x-6 border-x-transparent border-b-6 border-b-hyper-blue" />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
