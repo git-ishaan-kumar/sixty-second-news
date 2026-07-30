@@ -33,9 +33,9 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
   const [isIos, setIsIos] = useState(false);
   const [showIosTooltip, setShowIosTooltip] = useState(false);
 
-  // Monitor activeIndex to set scroll trigger (past 3 articles)
+  // Monitor activeIndex to set scroll trigger (after 1 swipe/scroll)
   useEffect(() => {
-    if (activeIndex >= 3) {
+    if (activeIndex >= 1) {
       setHasMetScrollTrigger(true);
     }
   }, [activeIndex]);
@@ -90,6 +90,7 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
   const handleDismissBanner = () => {
     sessionStorage.setItem('pwa_banner_dismissed', 'true');
     setShouldRenderBanner(false);
+    setShowIosTooltip(false); // Immediately close tooltip
   };
 
   const touchStartRef = useRef(0);
@@ -408,9 +409,9 @@ export default function FeedViewport({ articles }: FeedViewportProps) {
             className="w-10 h-10 rounded-xl flex-shrink-0 shadow-md shadow-hyper-blue/20"
           />
           <div className="flex flex-col text-left">
-            <span className="text-xs font-bold text-pure-white leading-tight">60s News</span>
+            <span className="text-xs font-bold text-pure-white leading-tight">Sixty Second News</span>
             <span className="text-[10px] font-semibold text-muted-slate leading-normal">
-              Add 60s News to your Home Screen
+              Add Sixty Second News to your Home Screen
             </span>
           </div>
         </div>
