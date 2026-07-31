@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="http://git-ishaan-kumar.github.io/sixty-second-news">
+  <a href="https://git-ishaan-kumar.github.io/sixty-second-news/">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="public/logo-dark.png">
       <source media="(prefers-color-scheme: light)" srcset="public/logo-light.png">
