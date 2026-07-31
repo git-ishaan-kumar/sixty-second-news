@@ -27,6 +27,14 @@
 
 ## Introduction
 
+<br>
+
+<div align="center">
+  <img src="public/screenshot.png" alt="Sixty Second News App Screenshot" width="85%" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+</div>
+
+<br>
+
 **Sixty Second News** a is news app that provides fast summaries and headlines categorized by topic, allowing users to swipe through breaking news headlines and view original sources.
 
 
