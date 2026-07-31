@@ -25,7 +25,7 @@
 
 <br>
 
-## Introduction
+## 📰 Introduction
 
 <br>
 
@@ -64,7 +64,7 @@
 
 ---
 
-## Quick Start
+## ⚡ Quick Start
 
 ### 1. Clone & Install
 
