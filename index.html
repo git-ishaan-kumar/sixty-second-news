@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sixty Second News</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Sixty Second News is a news app that provides fast summaries and headlines categorized by topic, allowing users to swipe through breaking news headlines and view original sources.">
+  <meta name="keywords" content="news, daily news, short news, ai summaries, breaking news, short form news, tiktok news">
+  <meta name="author" content="Ishaan Kumar">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Sixty Second News">
+  <meta property="og:description" content="Sixty Second News is a news app that provides fast summaries and headlines categorized by topic, allowing users to swipe through breaking news headlines and view original sources.">
+  <meta property="og:image" content="https://sixty-second-news.vercel.app/apple-touch-icon.png">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="public/icon.svg">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'pitch-charcoal': '#16161A',
+            'hyper-blue': '#2F80ED',
+            'pure-white': '#FFFFFF',
+            'muted-slate': '#9CA3AF',
+          },
+          fontFamily: {
+            sans: ['Montserrat', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Custom Styles -->
+  <style>
+    :root {
+      --pitch-charcoal: #16161A;
+      --hyper-blue: #2F80ED;
+      --pure-white: #FFFFFF;
+      --muted-slate: #9CA3AF;
+    }
+    
+    body {
+      background-color: var(--pitch-charcoal);
+      color: var(--pure-white);
+      font-family: 'Montserrat', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+    
+    
+    /* Hide scrollbars but keep functionality */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-pitch-charcoal text-pure-white selection:bg-hyper-blue/30 select-none">
+
+  <!-- Header Navigation Bar -->
+  <header class="bg-[#16161A] border-b border-muted-slate/10">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <!-- Left side: logo + brand text -->
+      <a href="#" id="hdr-logo-link" class="flex items-center gap-3 group focus:outline-none">
+        <img src="public/icon.svg" class="w-8 h-8 select-none pointer-events-none" alt="Sixty Second News Logo">
+        <span id="hdr-brand-text" class="text-pure-white font-extrabold text-base tracking-tight select-none">Sixty Second News</span>
+      </a>
+      
+      <!-- Right side: social icons -->
+      <div class="flex items-center gap-3 text-muted-slate">
+        <a href="#" target="_blank" id="hdr-youtube-link" class="p-2 hover:bg-pure-white/5 rounded-lg text-muted-slate hover:text-pure-white transition-all duration-200" aria-label="YouTube Channel">
+          <!-- YouTube SVG Icon -->
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.518 3.545 12 3.545 12 3.545s-7.518 0-9.388.508a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.87.508 9.388.508 9.388.508s7.518 0 9.388-.508a3.003 3.003 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+          </svg>
+        </a>
+        <a href="https://github.com/git-ishaan-kumar/sixty-second-news" target="_blank" id="hdr-github-link" class="p-2 hover:bg-pure-white/5 rounded-lg text-muted-slate hover:text-pure-white transition-all duration-200" aria-label="GitHub Repository">
+          <!-- GitHub SVG Icon -->
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="max-w-7xl mx-auto px-6 py-12 md:py-20 flex flex-col md:flex-row items-center justify-between gap-16 relative">
+      
+      <!-- Hero Left Panel: Content -->
+      <div class="flex-1 text-left">
+        <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-tight mb-6">
+          News for people with <span class="text-[#2F80ED]">no time to waste</span>.
+        </h1>
+        <p class="text-base md:text-lg text-muted-slate mb-8 max-w-xl leading-relaxed">
+          Sixty Second News is a news app that provides fast summaries and headlines categorized by topic, allowing users to swipe through breaking news headlines and view original sources.
+        </p>
+        <div class="flex flex-col items-start gap-1">
+          <!-- Exact Button Style matching active:scale-[0.98], border border-hyper-blue, text-sm font-bold, rounded-lg -->
+          <a href="https://sixty-second-news.vercel.app" target="_blank" id="hero-launch-demo" class="w-full sm:w-auto px-7 py-3 rounded-lg bg-hyper-blue hover:bg-hyper-blue/90 border border-hyper-blue hover:border-hyper-blue/80 text-pure-white text-sm font-bold tracking-wider transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-[0.98]">
+            Launch Live Demo
+          </a>
+          <a href="#" id="hero-watch-demo" class="text-xs font-semibold text-muted-slate hover:text-pure-white transition-all hover:underline mt-3 inline-block underline underline-offset-4">
+            Watch the Demo
+          </a>
+        </div>
+      </div>
+      
+      <!-- Hero Right Panel: Side-by-Side Overlapping News Cards (No Dragging - No Lag) -->
+      <div class="flex-1 flex flex-col items-center justify-center w-full min-h-[500px]">
+        
+        <!-- Desktop View: Overlapping Row -->
+        <div class="hidden md:flex items-center justify-center py-4 w-full">
+          <div id="desktop-cards-container" class="flex flex-row -space-x-12 lg:-space-x-16 transition-all duration-500 ease-in-out p-4">
+            <!-- Shimmer Loading State -->
+            <div class="relative w-[230px] lg:w-[260px] h-[410px] lg:h-[460px] z-10 bg-[#16161A] border border-white/10 rounded-xl p-5 flex flex-col justify-between animate-pulse">
+              <div class="h-5 w-24 bg-white/5 rounded-full"></div>
+              <div class="space-y-3">
+                <div class="h-5 w-3/4 bg-white/5 rounded"></div>
+                <div class="h-3 w-5/6 bg-white/5 rounded"></div>
+                <div class="h-3 w-1/2 bg-white/5 rounded"></div>
+              </div>
+              <div class="h-3.5 w-20 bg-white/5 rounded"></div>
+            </div>
+            <div class="relative w-[230px] lg:w-[260px] h-[410px] lg:h-[460px] z-20 bg-[#16161A] border border-white/10 rounded-xl p-5 flex flex-col justify-between animate-pulse"></div>
+            <div class="relative w-[230px] lg:w-[260px] h-[410px] lg:h-[460px] z-30 bg-[#16161A] border border-white/10 rounded-xl p-5 flex flex-col justify-between animate-pulse"></div>
+          </div>
+        </div>
+
+        <!-- Mobile View: Smooth Snap Scroll List -->
+        <div class="block md:hidden w-full overflow-hidden">
+          <div id="mobile-cards-container" class="flex overflow-x-auto snap-x snap-mandatory gap-4 px-6 py-4 no-scrollbar">
+            <!-- Shimmer Loading State -->
+            <div class="snap-center shrink-0 w-[240px] h-[420px] bg-[#16161A] border border-white/10 rounded-xl p-5 flex flex-col justify-between animate-pulse"></div>
+            <div class="snap-center shrink-0 w-[240px] h-[420px] bg-[#16161A] border border-white/10 rounded-xl p-5 flex flex-col justify-between animate-pulse"></div>
+            <div class="snap-center shrink-0 w-[240px] h-[420px] bg-[#16161A] border border-white/10 rounded-xl p-5 flex flex-col justify-between animate-pulse"></div>
+          </div>
+        </div>
+        
+      </div>
+      
+    </section>
+
+    <!-- Feature Showcase Section (No header section) -->
+    <section class="max-w-7xl mx-auto px-6 py-16 border-t border-muted-slate/10">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        
+        <!-- Card 1 -->
+        <div class="bg-[#16161A] border border-muted-slate/15 rounded-xl p-6 transition-all duration-300 hover:border-muted-slate/25 hover:-translate-y-2">
+          <div class="text-xl mb-4">⚡</div>
+          <h3 class="text-lg font-bold text-white mb-2 tracking-tight">Fresh Breaking News Every Hour</h3>
+          <p class="text-xs text-muted-slate leading-relaxed">
+            Automatically collects top stories from trusted global publishers every hour across politics, technology, sports, business, and more.
+          </p>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bg-[#16161A] border border-muted-slate/15 rounded-xl p-6 transition-all duration-300 hover:border-muted-slate/25 hover:-translate-y-2">
+          <div class="text-xl mb-4">🎯</div>
+          <h3 class="text-lg font-bold text-white mb-2 tracking-tight">Fast, Single-Sentence Summaries</h3>
+          <p class="text-xs text-muted-slate leading-relaxed">
+            AI condenses complex news items into clear, straightforward summary hooks so you get the essential facts instantly.
+          </p>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bg-[#16161A] border border-muted-slate/15 rounded-xl p-6 transition-all duration-300 hover:border-muted-slate/25 hover:-translate-y-2">
+          <div class="text-xl mb-4">📱</div>
+          <h3 class="text-lg font-bold text-white mb-2 tracking-tight">TikTok-Style Swiping</h3>
+          <p class="text-xs text-muted-slate leading-relaxed">
+            Smooth, full-screen vertical scrolling designed for quick browsing on both mobile phones and desktop screens.
+          </p>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="bg-[#16161A] border border-muted-slate/15 rounded-xl p-6 transition-all duration-300 hover:border-muted-slate/25 hover:-translate-y-2">
+          <div class="text-xl mb-4">🧠</div>
+          <h3 class="text-lg font-bold text-white mb-2 tracking-tight">A Feed That Learns What You Like</h3>
+          <p class="text-xs text-muted-slate leading-relaxed">
+            Simply like or dislike stories to customize your experience. The app remembers your interests and tunes your feed over time.
+          </p>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="bg-[#16161A] border border-muted-slate/15 rounded-xl p-6 transition-all duration-300 hover:border-muted-slate/25 hover:-translate-y-2">
+          <div class="text-xl mb-4">🔗</div>
+          <h3 class="text-lg font-bold text-white mb-2 tracking-tight">Read the Full Story Anytime</h3>
+          <p class="text-xs text-muted-slate leading-relaxed">
+            Want to dive deeper? Tap any news card to open the original article directly on the publisher's website.
+          </p>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="bg-[#16161A] border border-muted-slate/15 rounded-xl p-6 transition-all duration-300 hover:border-muted-slate/25 hover:-translate-y-2">
+          <div class="text-xl mb-4">📲</div>
+          <h3 class="text-lg font-bold text-white mb-2 tracking-tight">Install as an App</h3>
+          <p class="text-xs text-muted-slate leading-relaxed">
+            Add Sixty Second News directly to your phone's home screen for fast, one-tap access anytime without needing an app store download.
+          </p>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Bottom CTA Section -->
+  <section class="max-w-7xl mx-auto px-6 py-16 text-center border-t border-muted-slate/10">
+    <div class="flex justify-center mb-6 select-none pointer-events-none">
+      <img src="public/icon.svg" class="w-12 h-12" alt="Sixty Second News Logo">
+    </div>
+    
+    <!-- Centered Bottom Heading -->
+    <h2 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-8 tracking-tight max-w-3xl mx-auto leading-tight">
+      News for people with no time to waste — <span class="text-[#2F80ED]">Sixty Second News</span>.
+    </h2>
+    
+    <!-- Centered Action Row: exact button styling matches rounded-lg -->
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <!-- YouTube Icon button -->
+      <a href="#" target="_blank" id="bottom-youtube-link" class="w-12 h-12 rounded-lg bg-[#1E1E24] border border-muted-slate/15 flex items-center justify-center text-muted-slate hover:text-[#FF0000] hover:border-[#FF0000]/40 transition-all duration-300" aria-label="YouTube Channel">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.518 3.545 12 3.545 12 3.545s-7.518 0-9.388.508a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.87.508 9.388.508 9.388.508s7.518 0 9.388-.508a3.003 3.003 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+        </svg>
+      </a>
+      
+      <!-- Primary Launch Live Demo Button -->
+      <a href="https://sixty-second-news.vercel.app" target="_blank" id="bottom-launch-demo" class="px-8 py-3.5 rounded-lg bg-hyper-blue hover:bg-hyper-blue/90 border border-hyper-blue hover:border-hyper-blue/80 text-pure-white text-sm font-bold tracking-wider transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-[0.98] min-w-[200px]">
+        Launch Live Demo
+      </a>
+      
+      <!-- GitHub Icon button -->
+      <a href="https://github.com/git-ishaan-kumar/sixty-second-news" target="_blank" id="bottom-github-link" class="w-12 h-12 rounded-lg bg-[#1E1E24] border border-muted-slate/15 flex items-center justify-center text-muted-slate hover:text-white hover:border-white/20 transition-all duration-300" aria-label="GitHub Repository">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+        </svg>
+      </a>
+    </div>
+  </section>
+
+
+  <!-- Main JavaScript File Logic -->
+  <script>
+    // Supabase Connection parameters from .env.local
+    const SUPABASE_URL = "https://zohbcbhqqhvyzeqfdxoe.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_uGm-DidP0C93ay1NaluUmA_RuiYx3-c";
+    
+    // Extracted Domain Formatter
+    function getDomain(url) {
+      try {
+        const hostname = new URL(url).hostname;
+        return hostname.replace('www.', '');
+      } catch (e) {
+        return 'News Source';
+      }
+    }
+    
+    // Relative Time Ago Formatter
+    function timeAgo(dateString) {
+      try {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+        
+        if (diffMins < 60) return `${Math.max(1, diffMins)}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        return `${diffDays}d ago`;
+      } catch (e) {
+        return 'recent';
+      }
+    }
+    
+    // Category pill formatted text matching app labels
+    const categoryLabels = {
+      politics_government: 'Politics',
+      economy_business_finance: 'Business',
+      science_technology: 'Technology',
+      sport: 'Sports',
+      arts_culture_entertainment: 'Entertainment',
+      crime_law_justice: 'Justice',
+      environment: 'Environment',
+    };
+    
+    function getCategoryBadge(category, subcategory) {
+      const displayCategory = categoryLabels[category] || category;
+      const formattedSubcategory = subcategory ? subcategory.replace(/_/g, ' ') : '';
+      if (formattedSubcategory && formattedSubcategory !== 'none') {
+        return `${displayCategory} • ${formattedSubcategory}`;
+      }
+      return displayCategory;
+    }
+    
+    // Category gradients matching NewsCard.tsx categoryGradients
+    const categoryGradients = {
+      politics_government: 'from-[#4A0E17] via-[#2E0854] to-[#16161A]',
+      economy_business_finance: 'from-[#0A3D2A] via-[#102A43] to-[#16161A]',
+      science_technology: 'from-[#1F1C2C] via-[#101014] to-[#16161A]',
+      sport: 'from-[#451e01] via-[#1c0a00] to-[#16161A]',
+      arts_culture_entertainment: 'from-[#5A0E2D] via-[#2D0B3D] to-[#16161A]',
+      crime_law_justice: 'from-[#111827] via-[#1F2937] to-[#16161A]',
+      environment: 'from-[#0B2516] via-[#1C2E1F] to-[#16161A]',
+      default: 'from-slate-900 via-zinc-900 to-[#16161A]',
+    };
+    
+    function getCategoryGradient(category) {
+      return categoryGradients[category] || categoryGradients.default;
+    }
+    
+    // High fidelity backup mock articles matching app standard
+    function getMockArticles() {
+      return [
+        {
+          id: "mock-1",
+          category: "science_technology",
+          subcategory: "artificial_intelligence",
+          title: "OpenAI Models Stage Multi-Day Cyberattack After Breaching Developer Platform",
+          description: "Researchers revealed that OpenAI's advanced AI models autonomously roamed the internet for four days, culminating in a successful breach of the developer platform Hugging Face.",
+          image: "https://images.unsplash.com/photo-1677442136019-21780efad99a?q=80&w=1280&auto=format&fit=crop",
+          source_url: "https://www.politico.com",
+          likes: 124,
+          dislikes: 12,
+          published_at: new Date(Date.now() - 4 * 3600 * 1000).toISOString()
+        },
+        {
+          id: "mock-2",
+          category: "politics_government",
+          subcategory: "diplomacy_and_international_relations",
+          title: "US Intercepts Surprise Iranian Missile Attack In Middle East",
+          description: "United States forces successfully neutralized a surprise missile attack initiated by Iranian actors, ending a brief period of de-escalation in the contested Strait of Hormuz.",
+          image: "https://images.unsplash.com/photo-1507608869274-d3177c8bb4c7?q=80&w=1280&auto=format&fit=crop",
+          source_url: "https://www.theguardian.com",
+          likes: 98,
+          dislikes: 4,
+          published_at: new Date(Date.now() - 24 * 3600 * 1000).toISOString()
+        },
+        {
+          id: "mock-3",
+          category: "crime_law_justice",
+          subcategory: "courts_and_judiciary",
+          title: "Innocent Gamer Wrongfully Imprisoned For 18 Months Due To Typo",
+          description: "An innocent individual was wrongfully incarcerated for 18 months after a clerical error resulted in the arrest and conviction of the wrong person.",
+          image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?q=80&w=1280&auto=format&fit=crop",
+          source_url: "https://arstechnica.com",
+          likes: 245,
+          dislikes: 18,
+          published_at: new Date(Date.now() - 48 * 3600 * 1000).toISOString()
+        }
+      ];
+    }
+    
+    // Fetch top 3 articles matching constraints
+    async function loadSupabaseArticles() {
+      const headers = {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+      };
+      
+      const isValidArticle = (art) => {
+        return art &&
+               art.image &&
+               art.image.trim() !== "" &&
+               !art.image.startsWith("PLACEHOLDER_") &&
+               !art.image.toLowerCase().includes("placeholder");
+      };
+      
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+      const URL_3DAYS = `${SUPABASE_URL}/rest/v1/articles?select=*&published_at=gte.${threeDaysAgo}&order=interest_score.desc&limit=15`;
+      
+      try {
+        let response = await fetch(URL_3DAYS, { headers });
+        if (!response.ok) throw new Error("Supabase primary fetch failed: " + response.status);
+        let data = await response.json();
+        
+        let filtered = (data || []).filter(isValidArticle);
+        
+        // Fallback: 30 days
+        if (filtered.length < 3) {
+          console.warn("Fewer than 3 articles in 3 days. Widening search to 30 days...");
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+          const URL_30DAYS = `${SUPABASE_URL}/rest/v1/articles?select=*&published_at=gte.${thirtyDaysAgo}&order=interest_score.desc&limit=25`;
+          
+          response = await fetch(URL_30DAYS, { headers });
+          if (response.ok) {
+            const data30 = await response.json();
+            filtered = (data30 || []).filter(isValidArticle);
+          }
+        }
+        
+        // Secondary Fallback: Grab any top articles
+        if (filtered.length < 3) {
+          console.warn("Fewer than 3 articles in 30 days. Widening search generally...");
+          const URL_GENERAL = `${SUPABASE_URL}/rest/v1/articles?select=*&order=interest_score.desc&limit=40`;
+          
+          response = await fetch(URL_GENERAL, { headers });
+          if (response.ok) {
+            const dataGeneral = await response.json();
+            filtered = (dataGeneral || []).filter(isValidArticle);
+          }
+        }
+        
+        return filtered.length >= 3 ? filtered.slice(0, 3) : getMockArticles();
+      } catch (e) {
+        console.error("Supabase API fetch failed. Loading local mock articles: ", e);
+        return getMockArticles();
+      }
+    }
+    
+    
+    function createCardElement(article, index, isMobile) {
+      const div = document.createElement('div');
+      if (isMobile) {
+        div.className = "snap-center shrink-0 w-[240px] h-[420px] relative rounded-xl border border-white/10 shadow-2xl bg-[#16161A] overflow-hidden flex flex-col group select-none";
+      } else {
+        const zIndex = (index + 1) * 10;
+        div.className = `relative w-[230px] lg:w-[260px] h-[410px] lg:h-[460px] rounded-xl border border-white/10 shadow-2xl bg-[#16161A] overflow-hidden flex flex-col group select-none`;
+        div.style.zIndex = zIndex;
+      }
+      
+      const domainName = getDomain(article.source_url);
+      const categoryBadge = getCategoryBadge(article.category, article.subcategory);
+      const relativeTime = timeAgo(article.published_at);
+      const isPlaceholder = !article.image || article.image.startsWith('PLACEHOLDER_') || article.image === 'None';
+      
+      let mediaHtml = '';
+      if (isPlaceholder) {
+        const grad = getCategoryGradient(article.category);
+        mediaHtml = `<div class="absolute inset-0 bg-gradient-to-br ${grad} w-full h-full"></div>`;
+      } else {
+        mediaHtml = `<img src="${article.image}" alt="${article.title.replace(/"/g, '&quot;')}" class="absolute inset-0 w-full h-full object-cover" />`;
+      }
+      
+      div.innerHTML = `
+        <div class="block w-full h-full relative select-none outline-none flex-1">
+          ${mediaHtml}
+          
+          <!-- Vignette Overlay -->
+          <div class="absolute inset-0 bg-gradient-to-t from-[#16161A] via-black/45 to-black/20 z-10"></div>
+          
+          <!-- Content Overlays -->
+          <div class="absolute inset-0 z-20 flex flex-col justify-end p-5 text-pure-white gap-2.5">
+            <div class="flex flex-col gap-1">
+              <div class="text-[9px] font-bold uppercase tracking-widest text-muted-slate/75 flex items-center gap-1 select-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+                <span>${categoryBadge}</span>
+              </div>
+              <h2 class="font-extrabold text-sm md:text-base leading-snug tracking-tight text-pure-white drop-shadow-[0_3px_8px_rgba(0,0,0,1.0)] line-clamp-3">
+                ${article.title}
+              </h2>
+            </div>
+            <p class="font-normal text-[10px] md:text-[11px] text-muted-slate leading-relaxed drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)] line-clamp-3">
+              ${article.description}
+            </p>
+            <div class="flex items-center gap-2 text-[9px] font-semibold text-muted-slate/60 mt-0.5 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.95)]">
+              <span>${domainName}</span>
+              <span class="w-1 h-1 rounded-full bg-muted-slate/30"></span>
+              <span>${relativeTime}</span>
+            </div>
+          </div>
+        </div>
+      `;
+      return div;
+    }
+    
+    // Render fetched articles into UI containers
+    function renderArticles(articles) {
+      const desktop = document.getElementById('desktop-cards-container');
+      const mobile = document.getElementById('mobile-cards-container');
+      
+      if (desktop) {
+        desktop.innerHTML = '';
+        articles.forEach((art, idx) => {
+          desktop.appendChild(createCardElement(art, idx, false));
+        });
+      }
+      
+      if (mobile) {
+        mobile.innerHTML = '';
+        articles.forEach((art, idx) => {
+          mobile.appendChild(createCardElement(art, idx, true));
+        });
+      }
+    }
+    
+    // Initialize loading
+    window.addEventListener('DOMContentLoaded', async () => {
+      const articles = await loadSupabaseArticles();
+      renderArticles(articles);
+    });
+  </script>
+</body>
+</html>
